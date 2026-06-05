@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import api from "@/services/api";
 import { useRouter } from "next/navigation";
+import api from "@/services/api";
 
 export default function LoginPage() {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -21,39 +22,75 @@ export default function LoginPage() {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
+      window.dispatchEvent(new Event("auth-changed"));
+
       router.push("/");
-    } catch (err) {
+    } catch {
       alert("Email ou mot de passe incorrect");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-8 rounded-xl shadow-md w-96"
-      >
-        <h1 className="text-2xl font-bold mb-6 text-center">Connexion</h1>
+    <div className="min-h-screen flex items-center justify-center bg-[#F6F3F2] px-4">
+      <div className="w-full max-w-2xl bg-white rounded-xl border border-gray-200 p-12">
+        <div className="max-w-md mx-auto">
+          <h1 className="text-5xl font-bold text-[#A63D1B] mb-4">
+            Heureux de vous revoir
+          </h1>
 
-        <input
-          className="w-full border p-2 mb-4 rounded"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+          <p className="text-gray-600 mb-10 leading-relaxed">
+            Connectez-vous pour retrouver vos réservations, vos annonces et tout
+            ce qui rend vos séjours uniques.
+          </p>
 
-        <input
-          className="w-full border p-2 mb-4 rounded"
-          type="password"
-          placeholder="Mot de passe"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <form onSubmit={handleLogin}>
+            <div className="mb-6">
+              <label className="block text-sm mb-2">Adresse email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border border-gray-200 rounded-md px-4 py-3 outline-none focus:border-[#A63D1B]"
+              />
+            </div>
 
-        <button className="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">
-          Se connecter
-        </button>
-      </form>
+            <div className="mb-8">
+              <label className="block text-sm mb-2">Mot de passe</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border border-gray-200 rounded-md px-4 py-3 outline-none focus:border-[#A63D1B]"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-[#A63D1B] hover:bg-[#8e3215] text-white py-3 rounded-lg transition"
+            >
+              Se connecter
+            </button>
+          </form>
+
+          <div className="text-center mt-6 space-y-4">
+            <button
+              onClick={() => router.push("/forgot-password")}
+              className="text-[#A63D1B] hover:underline text-sm"
+            >
+              Mot de passe oublié
+            </button>
+
+            <div>
+              <button
+                onClick={() => router.push("/register")}
+                className="text-[#A63D1B] hover:underline"
+              >
+                Pas encore de compte ? Inscrivez-vous
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
