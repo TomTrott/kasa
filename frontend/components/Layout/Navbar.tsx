@@ -191,24 +191,6 @@ export default function Navbar() {
               </button>
             </>
           )}
-
-          {user ? (
-            <button
-              onClick={logout}
-              className="text-[#9F3A1D]"
-            >
-              Déconnexion
-            </button>
-          ) : (
-            <button
-              onClick={() =>
-                router.push("/login")
-              }
-              className="text-[#9F3A1D]"
-            >
-              Connexion
-            </button>
-          )}
         </div>
 
         {/* Menu burger */}
@@ -307,17 +289,6 @@ export default function Navbar() {
               </>
             )}
 
-            {!user && (
-              <button
-                onClick={() => {
-                  router.push("/login");
-                  setMobileMenuOpen(false);
-                }}
-                className="text-left text-[#9F3A1D]"
-              >
-                Connexion
-              </button>
-            )}
           </div>
         </div>
       )}
