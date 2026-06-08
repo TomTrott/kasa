@@ -102,52 +102,56 @@ export default function PropertyCard({
   };
 
   return (
-  <div className="bg-white rounded-[24px] overflow-hidden transition-all duration-300 hover:-translate-y-1">
-    <div className="relative">
-      <img
-        src={property.cover}
-        alt={property.title}
-        className="w-full h-[440px] object-cover"
-      />
+    <div className="bg-white rounded-[24px] overflow-hidden transition-all duration-300 hover:-translate-y-1">
+      <div className="relative">
+        <img
+          src={property.cover}
+          alt={property.title}
+          className="w-full h-[440px] object-cover"
+        />
 
-      {!loading && (
-        <button
-          onClick={toggleFavorite}
-          className="absolute top-4 right-4 w-12 h-12 bg-white rounded-xl flex items-center justify-center"
-        >
-          <Heart
-            size={18}
-            strokeWidth={2}
-            className={`transition-all ${
+        {!loading && (
+          <button
+            onClick={toggleFavorite}
+            aria-label={
               favorite
-                ? "fill-gray-700 text-gray-700"
-                : "text-gray-400"
-            }`}
-          />
-        </button>
-      )}
+                ? "Retirer des favoris"
+                : "Ajouter aux favoris"
+            }
+            className="absolute top-4 right-4 w-12 h-12 bg-white rounded-xl flex items-center justify-center"
+          >
+            <Heart
+              size={18}
+              strokeWidth={2}
+              className={`transition-all ${favorite
+                  ? "fill-gray-700 text-gray-700"
+                  : "text-gray-400"
+                }`}
+            />
+          </button>
+        )}
+      </div>
+
+      <div className="p-7">
+        <h2 className="text-[22px] font-medium text-[#1F1F1F] mb-2">
+          {property.title}
+        </h2>
+
+        <p className="text-[18px] text-gray-500">
+          {property.location}
+        </p>
+
+        <div className="h-16" />
+
+        <p className="text-[18px]">
+          <span className="font-semibold text-black">
+            {property.price_per_night}€
+          </span>
+          <span className="text-gray-500 ml-2">
+            par nuit
+          </span>
+        </p>
+      </div>
     </div>
-
-    <div className="p-7">
-      <h2 className="text-[22px] font-medium text-[#1F1F1F] mb-2">
-        {property.title}
-      </h2>
-
-      <p className="text-[18px] text-gray-500">
-        {property.location}
-      </p>
-
-      <div className="h-16" />
-
-      <p className="text-[18px]">
-        <span className="font-semibold text-black">
-          {property.price_per_night}€
-        </span>
-        <span className="text-gray-500 ml-2">
-          par nuit
-        </span>
-      </p>
-    </div>
-  </div>
-);
+  );
 }

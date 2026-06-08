@@ -3,8 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
-import { Heart, MessageCircle } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Menu,
+  X,
+} from "lucide-react";
 import Image from "next/image";
+
 import Logo from "@/assets/images/Logo.png";
 
 export default function Navbar() {
@@ -12,6 +18,8 @@ export default function Navbar() {
 
   const [user, setUser] = useState<any>(null);
   const [favoritesCount, setFavoritesCount] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] =
+    useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -25,6 +33,7 @@ export default function Navbar() {
       }
 
       const userData = JSON.parse(storedUser);
+
       setUser(userData);
 
       try {
@@ -46,11 +55,20 @@ export default function Navbar() {
     loadUser();
 
     window.addEventListener("auth-changed", loadUser);
-    window.addEventListener("favorites-changed", loadUser);
+    window.addEventListener(
+      "favorites-changed",
+      loadUser
+    );
 
     return () => {
-      window.removeEventListener("auth-changed", loadUser);
-      window.removeEventListener("favorites-changed", loadUser);
+      window.removeEventListener(
+        "auth-changed",
+        loadUser
+      );
+      window.removeEventListener(
+        "favorites-changed",
+        loadUser
+      );
     };
   }, []);
 
@@ -61,16 +79,33 @@ export default function Navbar() {
     setFavoritesCount(0);
     setUser(null);
 
-    window.dispatchEvent(new Event("auth-changed"));
+    window.dispatchEvent(
+      new Event("auth-changed")
+    );
 
     router.push("/login");
   };
 
   return (
     <header className="px-4 py-2">
-      <div className="max-w-7xl mx-auto bg-whiterounded-[20px] h-[72px] px-10 flex items-center justify-between">
-        {/* Navigation gauche */}
-        <div className="flex items-center gap-12">
+      <div className="relative max-w-7xl mx-auto bg-white rounded-[20px] h-[72px] px-6 md:px-10 flex items-center justify-between">
+        {/* Mobile : Logo gauche */}
+        <button
+          onClick={() => router.push("/")}
+          className="md:hidden"
+        >
+          <Image
+            src={Logo}
+            alt="Kasa"
+            width={95}
+            height={40}
+            priority
+            className="object-contain"
+          />
+        </button>
+
+        {/* Navigation desktop gauche */}
+        <div className="hidden md:flex items-center gap-12">
           <button
             onClick={() => router.push("/")}
             className="text-[18px] text-[#222] hover:text-[#9F3A1D]"
@@ -86,10 +121,10 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Logo centré */}
+        {/* Logo desktop centré */}
         <button
           onClick={() => router.push("/")}
-          className="absolute left-1/2 -translate-x-1/2"
+          className="hidden md:block absolute left-1/2 -translate-x-1/2"
         >
           <Image
             src={Logo}
@@ -101,11 +136,15 @@ export default function Navbar() {
           />
         </button>
 
-        {/* Navigation droite */}
-        <div className="flex items-center gap-5">
+        {/* Navigation desktop droite */}
+        <div className="hidden md:flex items-center gap-5">
           {user && (
             <button
-              onClick={() => router.push("/owner/properties/new")}
+              onClick={() =>
+                router.push(
+                  "/owner/properties/new"
+                )
+              }
               className="text-[#9F3A1D] text-[18px] font-medium hover:opacity-80"
             >
               +Ajouter un logement
@@ -114,7 +153,11 @@ export default function Navbar() {
 
           {user && (
             <>
+              {/* Favoris */}
               <button
+                type="button"
+                aria-label="Voir mes favoris"
+                title="Voir mes favoris"
                 onClick={() => router.push("/favorites")}
                 className="relative"
               >
@@ -133,7 +176,11 @@ export default function Navbar() {
 
               <div className="w-px h-5 bg-[#9F3A1D]/40" />
 
+              {/* Messages */}
               <button
+                type="button"
+                aria-label="Ouvrir la messagerie"
+                title="Ouvrir la messagerie"
                 onClick={() => router.push("/chat")}
               >
                 <MessageCircle
@@ -145,16 +192,135 @@ export default function Navbar() {
             </>
           )}
 
-          {!user && (
+          {user ? (
             <button
-              onClick={() => router.push("/login")}
-              className="text-[#9F3A1D] text-[16px]"
+              onClick={logout}
+              className="text-[#9F3A1D]"
+            >
+              Déconnexion
+            </button>
+          ) : (
+            <button
+              onClick={() =>
+                router.push("/login")
+              }
+              className="text-[#9F3A1D]"
             >
               Connexion
             </button>
           )}
         </div>
+
+        {/* Menu burger */}
+        <button
+          type="button"
+          aria-label={
+            mobileMenuOpen
+              ? "Fermer le menu"
+              : "Ouvrir le menu"
+          }
+          title={
+            mobileMenuOpen
+              ? "Fermer le menu"
+              : "Ouvrir le menu"
+          }
+          onClick={() =>
+            setMobileMenuOpen(!mobileMenuOpen)
+          }
+          className="md:hidden"
+        >
+          {mobileMenuOpen ? (
+            <X size={28} />
+          ) : (
+            <Menu size={28} />
+          )}
+        </button>
       </div>
+
+      {/* Menu mobile */}
+      {mobileMenuOpen && (
+        <div className="md:hidden mt-3 bg-white rounded-2xl shadow-lg p-6">
+          <div className="flex flex-col gap-5">
+            <button
+              onClick={() => {
+                router.push("/");
+                setMobileMenuOpen(false);
+              }}
+              className="text-left"
+            >
+              Accueil
+            </button>
+
+            <button
+              onClick={() => {
+                router.push("/about");
+                setMobileMenuOpen(false);
+              }}
+              className="text-left"
+            >
+              À propos
+            </button>
+
+            {user && (
+              <>
+                <button
+                  onClick={() => {
+                    router.push(
+                      "/owner/properties/new"
+                    );
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left text-[#9F3A1D]"
+                >
+                  + Ajouter un logement
+                </button>
+
+                <button
+                  onClick={() => {
+                    router.push("/favorites");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left"
+                >
+                  Favoris ({favoritesCount})
+                </button>
+
+                <button
+                  onClick={() => {
+                    router.push("/chat");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left"
+                >
+                  Messages
+                </button>
+
+                <button
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left text-red-500"
+                >
+                  Déconnexion
+                </button>
+              </>
+            )}
+
+            {!user && (
+              <button
+                onClick={() => {
+                  router.push("/login");
+                  setMobileMenuOpen(false);
+                }}
+                className="text-left text-[#9F3A1D]"
+              >
+                Connexion
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
