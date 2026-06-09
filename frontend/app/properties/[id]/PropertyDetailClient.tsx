@@ -51,20 +51,33 @@ export default function PropertyDetailClient({
             <img
               src={gallery[0]}
               alt=""
-              className="col-span-12 md:col-span-6 h-[500px] rounded-2xl object-cover w-full"
+              className="
+    col-span-12 md:col-span-6
+    h-[280px] md:h-[500px]
+    rounded-2xl
+    object-cover
+    w-full
+  "
             />
 
-            <div className="col-span-12 md:col-span-6 grid grid-cols-2 gap-3">
-              {gallery
-                .slice(1, 5)
-                .map((image: string, index: number) => (
-                  <img
-                    key={index}
-                    src={image}
-                    alt=""
-                    className="h-[242px] w-full object-cover rounded-xl"
-                  />
-                ))}
+            <div className="col-span-12 md:col-span-6">
+              <div className="grid grid-cols-4 md:grid-cols-2 gap-3">
+                {gallery
+                  .slice(1, 5)
+                  .map((image: string, index: number) => (
+                    <img
+                      key={index}
+                      src={image}
+                      alt=""
+                      className="
+            h-24 md:h-[242px]
+            w-full
+            object-cover
+            rounded-xl
+          "
+                    />
+                  ))}
+              </div>
             </div>
           </div>
 
@@ -142,12 +155,8 @@ export default function PropertyDetailClient({
 
             <div>
               <h3 className="font-medium">
-                {property.host?.name}
+                {property.host?.name} ⭐ {property.rating_avg || 0}
               </h3>
-
-              <p className="text-sm text-gray-500">
-                ⭐ {property.rating_avg || 0}
-              </p>
             </div>
           </div>
 
@@ -158,16 +167,6 @@ export default function PropertyDetailClient({
           <button className="w-full bg-[#9F3A1D] text-white rounded-xl py-3 mt-3">
             Envoyer un message
           </button>
-
-          <div className="mt-8 text-center">
-            <p className="text-3xl font-bold">
-              {property.price_per_night}€
-            </p>
-
-            <p className="text-gray-500">
-              par nuit
-            </p>
-          </div>
         </aside>
       </div>
     </main>
