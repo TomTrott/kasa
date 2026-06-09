@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import api from "@/services/api";
 import { Heart } from "lucide-react";
@@ -37,12 +38,7 @@ export default function PropertyCard({
       }
 
       const res = await api.get(
-        `/api/users/${user.id}/favorites`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        `/api/users/${user.id}/favorites`
       );
 
       const isFavorite = res.data.some(
@@ -57,7 +53,12 @@ export default function PropertyCard({
     }
   };
 
-  const toggleFavorite = async () => {
+  const toggleFavorite = async (
+    e: React.MouseEvent
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     try {
       const token = localStorage.getItem("token");
 
@@ -68,90 +69,73 @@ export default function PropertyCard({
 
       if (favorite) {
         await api.delete(
-          `/api/properties/${property.id}/favorite`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          `/api/properties/${property.id}/favorite`
         );
-
-        setFavorite(false);
       } else {
         await api.post(
-          `/api/properties/${property.id}/favorite`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          `/api/properties/${property.id}/favorite`
         );
-
-        setFavorite(true);
       }
 
-      // Met à jour la Navbar instantanément
+      setFavorite(!favorite);
+
       window.dispatchEvent(
         new Event("favorites-changed")
       );
     } catch (error) {
       console.error(error);
-      alert("Erreur lors de la gestion des favoris");
     }
   };
 
   return (
-    <div className="bg-white rounded-[24px] overflow-hidden transition-all duration-300 hover:-translate-y-1">
-      <div className="relative">
-        <img
-          src={property.cover}
-          alt={property.title}
-          className="w-full h-[440px] object-cover"
-        />
+    <Link href={`/properties/${property.id}`}>
+      <div className="bg-white rounded-[24px] overflow-hidden transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+        <div className="relative">
+          <img
+            src={property.cover}
+            alt={property.title}
+            className="w-full h-[440px] object-cover"
+          />
 
-        {!loading && (
-          <button
-            onClick={toggleFavorite}
-            aria-label={
-              favorite
-                ? "Retirer des favoris"
-                : "Ajouter aux favoris"
-            }
-            className="absolute top-4 right-4 w-12 h-12 bg-white rounded-xl flex items-center justify-center"
-          >
-            <Heart
-              size={18}
-              strokeWidth={2}
-              className={`transition-all ${favorite
-                  ? "fill-gray-700 text-gray-700"
-                  : "text-gray-400"
-                }`}
-            />
-          </button>
-        )}
+          {!loading && (
+            <button
+              onClick={toggleFavorite}
+              className="absolute top-4 right-4 w-12 h-12 bg-white rounded-xl flex items-center justify-center"
+            >
+              <Heart
+                size={18}
+                className={
+                  favorite
+                    ? "fill-gray-700 text-gray-700"
+                    : "text-gray-400"
+                }
+              />
+            </button>
+          )}
+        </div>
+
+        <div className="p-7">
+          <h2 className="text-[22px] font-medium">
+            {property.title}
+          </h2>
+
+          <p className="text-gray-500">
+            {property.location}
+          </p>
+
+          <div className="h-12" />
+
+          <p>
+            <span className="font-semibold">
+              {property.price_per_night}€
+            </span>
+
+            <span className="text-gray-500 ml-2">
+              par nuit
+            </span>
+          </p>
+        </div>
       </div>
-
-      <div className="p-7">
-        <h2 className="text-[22px] font-medium text-[#1F1F1F] mb-2">
-          {property.title}
-        </h2>
-
-        <p className="text-[18px] text-gray-500">
-          {property.location}
-        </p>
-
-        <div className="h-16" />
-
-        <p className="text-[18px]">
-          <span className="font-semibold text-black">
-            {property.price_per_night}€
-          </span>
-          <span className="text-gray-500 ml-2">
-            par nuit
-          </span>
-        </p>
-      </div>
-    </div>
+    </Link>
   );
 }
