@@ -89,7 +89,7 @@ export default function PropertyDetailClient({
             </h1>
 
             <p className="text-gray-500 mb-10">
-              📍 {property.location}
+               {property.location}
             </p>
 
             <p className="leading-8 text-gray-700">
@@ -155,7 +155,7 @@ export default function PropertyDetailClient({
 
             <div>
               <h3 className="font-medium">
-                {property.host?.name} ⭐ {property.rating_avg || 0}
+                {property.host?.name}  {property.rating_avg || 0}
               </h3>
             </div>
           </div>

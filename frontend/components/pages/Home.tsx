@@ -14,11 +14,8 @@ export default function HomeClient() {
     const updateLimit = () => {
       setLimit(window.innerWidth < 768 ? 6 : 12);
     };
-
     updateLimit();
-
     window.addEventListener("resize", updateLimit);
-
     return () => {
       window.removeEventListener("resize", updateLimit);
     };
