@@ -9,8 +9,7 @@ export default function PropertyDetailClient({
 }: {
   id: string;
 }) {
-  const [property, setProperty] =
-    useState<any>(null);
+  const [property, setProperty] = useState<any>(null);
 
   useEffect(() => {
     api
@@ -32,36 +31,84 @@ export default function PropertyDetailClient({
   const gallery = [
     property.cover,
     ...(property.pictures || []),
-  ];
+  ].filter(Boolean);
 
   return (
-    <main className="max-w-7xl mx-auto px-6 py-10">
+    <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10">
       <Link
         href="/"
-        className="inline-flex items-center px-5 py-3 bg-white rounded-xl mb-8"
+        className="
+          inline-flex
+          items-center
+          px-4
+          py-2
+          bg-white
+          rounded-xl
+          mb-4
+          text-sm
+          md:text-base
+        "
       >
         ← Retour aux annonces
       </Link>
 
-      <div className="grid lg:grid-cols-[1fr_320px] gap-8">
+      <div className="grid lg:grid-cols-[1fr_320px] gap-6 lg:gap-8">
         <div>
           {/* Galerie */}
 
-          <div className="grid grid-cols-12 gap-3">
-            <img
-              src={gallery[0]}
-              alt=""
-              className="
-    col-span-12 md:col-span-6
-    h-[280px] md:h-[500px]
-    rounded-2xl
-    object-cover
-    w-full
-  "
-            />
+          <div className="space-y-3">
+            {/* Mobile / Tablette */}
 
-            <div className="col-span-12 md:col-span-6">
-              <div className="grid grid-cols-4 md:grid-cols-2 gap-3">
+            <div className="lg:hidden">
+              <img
+                src={gallery[0]}
+                alt={property.title}
+                className="
+      w-full
+      aspect-[4/5]
+      rounded-2xl
+      object-cover
+      object-[center_45%]
+    "
+              />
+
+              {gallery.length > 1 && (
+                <div className="grid grid-cols-4 gap-2 mt-2">
+                  {gallery
+                    .slice(1, 5)
+                    .map((image: string, index: number) => (
+                      <img
+                        key={index}
+                        src={image}
+                        alt=""
+                        className="
+              w-full
+              aspect-[3/4]
+              rounded-xl
+              object-cover
+              object-[center_40%]
+            "
+                      />
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop */}
+
+            <div className="hidden lg:grid grid-cols-2 gap-3">
+              <img
+                src={gallery[0]}
+                alt={property.title}
+                className="
+                  w-full
+                  h-[600px]
+                  rounded-2xl
+                  object-cover
+                "
+              />
+
+              <div className="grid grid-cols-2 gap-3">
                 {gallery
                   .slice(1, 5)
                   .map((image: string, index: number) => (
@@ -70,11 +117,11 @@ export default function PropertyDetailClient({
                       src={image}
                       alt=""
                       className="
-            h-24 md:h-[242px]
-            w-full
-            object-cover
-            rounded-xl
-          "
+                        h-[293px]
+                        w-full
+                        object-cover
+                        rounded-2xl
+                      "
                     />
                   ))}
               </div>
@@ -83,20 +130,22 @@ export default function PropertyDetailClient({
 
           {/* Description */}
 
-          <div className="bg-white rounded-2xl p-8 mt-6">
-            <h1 className="text-4xl font-semibold mb-4">
+          <div className="bg-white rounded-2xl p-6 md:p-8 mt-6">
+            <h1 className="text-3xl md:text-4xl font-semibold mb-4">
               {property.title}
             </h1>
 
-            <p className="text-gray-500 mb-10">
-               {property.location}
+            <p className="text-gray-500 mb-8 md:mb-10">
+              {property.location}
             </p>
 
-            <p className="leading-8 text-gray-700">
+            <p className="leading-7 md:leading-8 text-gray-700">
               {property.description}
             </p>
 
-            <div className="mt-12">
+            {/* Equipements */}
+
+            <div className="mt-10 md:mt-12">
               <h2 className="font-semibold mb-4">
                 Equipements
               </h2>
@@ -106,7 +155,13 @@ export default function PropertyDetailClient({
                   (equipment: string) => (
                     <span
                       key={equipment}
-                      className="px-4 py-2 bg-gray-100 rounded-lg"
+                      className="
+                        px-4
+                        py-2
+                        text-sm
+                        bg-gray-100
+                        rounded-lg
+                      "
                     >
                       {equipment}
                     </span>
@@ -115,22 +170,28 @@ export default function PropertyDetailClient({
               </div>
             </div>
 
-            <div className="mt-12">
+            {/* Catégories */}
+
+            <div className="mt-10 md:mt-12">
               <h2 className="font-semibold mb-4">
                 Catégories
               </h2>
 
               <div className="flex flex-wrap gap-3">
-                {property.tags?.map(
-                  (tag: string) => (
-                    <span
-                      key={tag}
-                      className="px-4 py-2 bg-gray-100 rounded-lg"
-                    >
-                      {tag}
-                    </span>
-                  )
-                )}
+                {property.tags?.map((tag: string) => (
+                  <span
+                    key={tag}
+                    className="
+                      px-4
+                      py-2
+                      text-sm
+                      bg-gray-100
+                      rounded-lg
+                    "
+                  >
+                    {tag}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
@@ -138,7 +199,16 @@ export default function PropertyDetailClient({
 
         {/* Host Card */}
 
-        <aside className="bg-white rounded-2xl p-6 h-fit sticky top-6">
+        <aside
+          className="
+            bg-white
+            rounded-2xl
+            p-6
+            h-fit
+            lg:sticky
+            lg:top-6
+          "
+        >
           <h2 className="font-semibold mb-6">
             Votre hôte
           </h2>
@@ -149,22 +219,53 @@ export default function PropertyDetailClient({
                 property.host?.picture ||
                 "/avatar-placeholder.jpg"
               }
-              alt=""
-              className="w-16 h-16 rounded-xl object-cover"
+              alt={property.host?.name}
+              className="
+                w-16
+                h-16
+                rounded-xl
+                object-cover
+              "
             />
 
             <div>
               <h3 className="font-medium">
-                {property.host?.name}  {property.rating_avg || 0}
+                {property.host?.name}
               </h3>
+
+              <p className="text-sm text-gray-500 mt-1">
+                {property.rating_avg || 0}
+              </p>
             </div>
           </div>
 
-          <button className="w-full bg-[#9F3A1D] text-white rounded-xl py-3 mt-8">
+          <button
+            className="
+              w-full
+              bg-[#9F3A1D]
+              text-white
+              rounded-xl
+              py-3
+              mt-8
+              hover:opacity-90
+              transition
+            "
+          >
             Contacter l'hôte
           </button>
 
-          <button className="w-full bg-[#9F3A1D] text-white rounded-xl py-3 mt-3">
+          <button
+            className="
+              w-full
+              bg-[#9F3A1D]
+              text-white
+              rounded-xl
+              py-3
+              mt-3
+              hover:opacity-90
+              transition
+            "
+          >
             Envoyer un message
           </button>
         </aside>
