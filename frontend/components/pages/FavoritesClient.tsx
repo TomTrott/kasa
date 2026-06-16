@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/services/api";
-import PropertyCard from "@/components/property/PropertyCard";
+import PropertyCard from "@/components/Property/PropertyCard";
 
 export default function FavoritesClient() {
   const [favorites, setFavorites] = useState([]);

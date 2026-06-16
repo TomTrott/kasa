@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import api from "@/services/api";
 import { Heart } from "lucide-react";
+import { fullUrl } from "@/lib/url";
 
 interface PropertyCardProps {
   property: {
@@ -92,7 +93,7 @@ export default function PropertyCard({
       <div className="bg-white rounded-[24px] overflow-hidden transition-all duration-300 hover:-translate-y-1 cursor-pointer">
         <div className="relative">
           <img
-            src={property.cover}
+            src={fullUrl(property.cover)}
             alt={property.title}
             className="w-full h-[440px] object-cover"
           />

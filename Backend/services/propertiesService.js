@@ -39,11 +39,11 @@ async function ensureUniqueSlug(db, base, excludeId = null) {
 
 async function listProperties(db) {
   const rows = await db.allAsync(`
-      SELECT p.*, u.name AS host_name, u.picture AS host_picture
-      FROM properties p
-      JOIN users u ON u.id = p.host_id
-      ORDER BY p.title ASC
-    `);
+    SELECT p.*, u.name AS host_name, u.picture AS host_picture
+    FROM properties p
+    JOIN users u ON u.id = p.host_id
+    ORDER BY p.rowid DESC
+  `);
   return rows.map(mapPropertyRow);
 }
 

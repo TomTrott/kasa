@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { fullUrl } from "@/lib/url";
 
 export default function PropertyDetailClient({ id }: { id: string }) {
+  const router = useRouter();
   const [property, setProperty] = useState<any>(null);
 
   useEffect(() => {
@@ -30,19 +31,17 @@ export default function PropertyDetailClient({ id }: { id: string }) {
 
   return (
     <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10">
-      <Link
-        href="/"
-        className="inline-flex items-center px-4 py-2 bg-white rounded-xl mb-4 text-sm md:text-base"
+      <button
+        onClick={() => router.back()}
+        className="inline-flex items-center px-4 py-2 bg-white rounded-xl mb-4 text-sm md:text-base hover:bg-gray-50 transition"
       >
-        ← Retour aux annonces
-      </Link>
+        ← Retour
+      </button>
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 lg:gap-8">
         <div>
           {/* Galerie */}
           <div className="space-y-3">
-
-            {/* Mobile / Tablette */}
             <div className="lg:hidden">
               <img
                 src={gallery[0]}
@@ -52,10 +51,7 @@ export default function PropertyDetailClient({ id }: { id: string }) {
               {gallery.length > 1 && (
                 <div className="grid grid-cols-4 gap-2 mt-2">
                   {gallery.slice(1, 5).map((image: string, index: number) => (
-                    <img
-                      key={index}
-                      src={image}
-                      alt=""
+                    <img key={index} src={image} alt=""
                       className="w-full aspect-[3/4] rounded-xl object-cover object-[center_40%]"
                     />
                   ))}
@@ -63,7 +59,6 @@ export default function PropertyDetailClient({ id }: { id: string }) {
               )}
             </div>
 
-            {/* Desktop */}
             <div className="hidden lg:grid grid-cols-2 gap-3">
               <img
                 src={gallery[0]}
@@ -72,10 +67,7 @@ export default function PropertyDetailClient({ id }: { id: string }) {
               />
               <div className="grid grid-cols-2 gap-3">
                 {gallery.slice(1, 5).map((image: string, index: number) => (
-                  <img
-                    key={index}
-                    src={image}
-                    alt=""
+                  <img key={index} src={image} alt=""
                     className="h-[293px] w-full object-cover rounded-2xl"
                   />
                 ))}
@@ -85,32 +77,24 @@ export default function PropertyDetailClient({ id }: { id: string }) {
 
           {/* Description */}
           <div className="bg-white rounded-2xl p-6 md:p-8 mt-6">
-            <h1 className="text-3xl md:text-4xl font-semibold mb-4">
-              {property.title}
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-semibold mb-4">{property.title}</h1>
             <p className="text-gray-500 mb-8 md:mb-10">{property.location}</p>
             <p className="leading-7 md:leading-8 text-gray-700">{property.description}</p>
 
-            {/* Equipements */}
             <div className="mt-10 md:mt-12">
               <h2 className="font-semibold mb-4">Equipements</h2>
               <div className="flex flex-wrap gap-3">
                 {property.equipments?.map((equipment: string) => (
-                  <span key={equipment} className="px-4 py-2 text-sm bg-gray-100 rounded-lg">
-                    {equipment}
-                  </span>
+                  <span key={equipment} className="px-4 py-2 text-sm bg-gray-100 rounded-lg">{equipment}</span>
                 ))}
               </div>
             </div>
 
-            {/* Catégories */}
             <div className="mt-10 md:mt-12">
               <h2 className="font-semibold mb-4">Catégories</h2>
               <div className="flex flex-wrap gap-3">
                 {property.tags?.map((tag: string) => (
-                  <span key={tag} className="px-4 py-2 text-sm bg-gray-100 rounded-lg">
-                    {tag}
-                  </span>
+                  <span key={tag} className="px-4 py-2 text-sm bg-gray-100 rounded-lg">{tag}</span>
                 ))}
               </div>
             </div>
