@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/services/api";
 import { fullUrl } from "@/lib/url";
 import { ArrowLeft, Send } from "lucide-react";
@@ -41,6 +41,8 @@ function isSameDay(a: string, b: string) {
 
 export default function ChatClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [user, setUser] = useState<any>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
@@ -48,6 +50,7 @@ export default function ChatClient() {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const autoSelectedRef = useRef(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -63,6 +66,21 @@ export default function ChatClient() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Auto-sélectionne la conv depuis l'URL ?conv=ID
+  useEffect(() => {
+    if (autoSelectedRef.current) return;
+    if (conversations.length === 0) return;
+
+    const convParam = searchParams.get("conv");
+    if (!convParam) return;
+
+    const target = conversations.find(c => c.id === Number(convParam));
+    if (target) {
+      autoSelectedRef.current = true;
+      selectConversation(target);
+    }
+  }, [conversations, searchParams]);
 
   const loadConversations = async () => {
     try {
@@ -80,7 +98,6 @@ export default function ChatClient() {
     try {
       const res = await api.get(`/api/conversations/${conv.id}/messages`);
       setMessages(res.data);
-      // Reset unread
       setConversations(prev =>
         prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c)
       );
@@ -146,7 +163,6 @@ export default function ChatClient() {
                   selectedConv?.id === conv.id ? "bg-gray-50" : ""
                 }`}
               >
-                {/* Avatar */}
                 <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0 overflow-hidden">
                   {conv.other_user_picture ? (
                     <img src={fullUrl(conv.other_user_picture)} alt="" className="w-full h-full object-cover" />
@@ -189,7 +205,6 @@ export default function ChatClient() {
           </div>
         ) : (
           <>
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
               {messages.map((msg, i) => {
                 const isMe = msg.sender_id === user?.id;
@@ -206,7 +221,6 @@ export default function ChatClient() {
                     )}
 
                     <div className={`flex items-start gap-3 ${isMe ? "flex-row-reverse" : ""}`}>
-                      {/* Avatar */}
                       <div className="w-9 h-9 rounded-full bg-gray-200 shrink-0 overflow-hidden">
                         {msg.sender_picture ? (
                           <img src={fullUrl(msg.sender_picture)} alt="" className="w-full h-full object-cover" />
@@ -237,7 +251,6 @@ export default function ChatClient() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
             <div className="border-t border-gray-100 bg-white px-6 py-4">
               <div className="flex items-center gap-3">
                 <input

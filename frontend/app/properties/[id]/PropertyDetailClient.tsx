@@ -8,6 +8,7 @@ import { fullUrl } from "@/lib/url";
 export default function PropertyDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const [property, setProperty] = useState<any>(null);
+  const [startingConv, setStartingConv] = useState(false);
 
   useEffect(() => {
     api
@@ -15,6 +16,28 @@ export default function PropertyDetailClient({ id }: { id: string }) {
       .then((res) => setProperty(res.data))
       .catch(console.error);
   }, [id]);
+
+  const handleStartConversation = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      setStartingConv(true);
+
+      const res = await api.post("/api/conversations", {
+        recipient_id: property.host?.id,
+      });
+
+      router.push(`/chat?conv=${res.data.conversationId}`);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setStartingConv(false);
+    }
+  };
 
   if (!property) {
     return (
@@ -119,8 +142,13 @@ export default function PropertyDetailClient({ id }: { id: string }) {
           <button className="w-full bg-[#9F3A1D] text-white rounded-xl py-3 mt-8 hover:opacity-90 transition">
             Contacter l'hôte
           </button>
-          <button className="w-full bg-[#9F3A1D] text-white rounded-xl py-3 mt-3 hover:opacity-90 transition">
-            Envoyer un message
+
+          <button
+            onClick={handleStartConversation}
+            disabled={startingConv}
+            className="w-full bg-[#9F3A1D] text-white rounded-xl py-3 mt-3 hover:opacity-90 transition disabled:opacity-60"
+          >
+            {startingConv ? "Redirection..." : "Envoyer un message"}
           </button>
         </aside>
       </div>
