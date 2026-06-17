@@ -1,0 +1,265 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import api from "@/services/api";
+import { fullUrl } from "@/lib/url";
+import { ArrowLeft, Send } from "lucide-react";
+
+interface Conversation {
+  id: number;
+  other_user_id: number;
+  other_user_name: string;
+  other_user_picture: string | null;
+  last_message: string | null;
+  last_message_at: string | null;
+  unread_count: number;
+}
+
+interface Message {
+  id: number;
+  sender_id: number;
+  content: string;
+  created_at: string;
+  sender_name: string;
+  sender_picture: string | null;
+}
+
+function formatTime(dateStr: string) {
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDateSeparator(dateStr: string) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+function isSameDay(a: string, b: string) {
+  return new Date(a).toDateString() === new Date(b).toDateString();
+}
+
+export default function ChatClient() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) { router.push("/login"); return; }
+    setUser(JSON.parse(storedUser));
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    loadConversations();
+  }, [user]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const loadConversations = async () => {
+    try {
+      const res = await api.get("/api/conversations");
+      setConversations(res.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectConversation = async (conv: Conversation) => {
+    setSelectedConv(conv);
+    try {
+      const res = await api.get(`/api/conversations/${conv.id}/messages`);
+      setMessages(res.data);
+      // Reset unread
+      setConversations(prev =>
+        prev.map(c => c.id === conv.id ? { ...c, unread_count: 0 } : c)
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedConv) return;
+    try {
+      const res = await api.post(`/api/conversations/${selectedConv.id}/messages`, {
+        content: newMessage.trim(),
+      });
+      setMessages(prev => [...prev, res.data]);
+      setNewMessage("");
+      setConversations(prev =>
+        prev.map(c => c.id === selectedConv.id
+          ? { ...c, last_message: newMessage.trim(), last_message_at: new Date().toISOString() }
+          : c
+        )
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  if (loading) {
+    return <div className="h-screen flex items-center justify-center">Chargement...</div>;
+  }
+
+  return (
+    <div className="flex h-[calc(100vh-80px)]">
+
+      {/* ── Sidebar conversations ── */}
+      <div className="w-[300px] shrink-0 flex flex-col border-r border-gray-100 bg-white">
+        <div className="px-5 pt-6 pb-4">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1.5 text-sm text-gray-500 mb-5 hover:text-gray-800"
+          >
+            <ArrowLeft size={14} /> Retour
+          </button>
+          <h1 className="text-2xl font-semibold">Messages</h1>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {conversations.length === 0 ? (
+            <p className="text-sm text-gray-400 px-5">Aucune conversation</p>
+          ) : (
+            conversations.map((conv) => (
+              <button
+                key={conv.id}
+                onClick={() => selectConversation(conv)}
+                className={`w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left border-b border-gray-50 ${
+                  selectedConv?.id === conv.id ? "bg-gray-50" : ""
+                }`}
+              >
+                {/* Avatar */}
+                <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0 overflow-hidden">
+                  {conv.other_user_picture ? (
+                    <img src={fullUrl(conv.other_user_picture)} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-300" />
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-900 truncate">
+                      {conv.other_user_name}
+                    </span>
+                    {conv.last_message_at && (
+                      <span className="text-[11px] text-gray-400 shrink-0 ml-2">
+                        {formatTime(conv.last_message_at)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className="text-xs text-gray-400 truncate max-w-[160px]">
+                      {conv.last_message || "Aucun message"}
+                    </p>
+                    {conv.unread_count > 0 && (
+                      <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 ml-2" />
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* ── Zone messages ── */}
+      <div className="flex-1 flex flex-col">
+        {!selectedConv ? (
+          <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+            Sélectionnez une conversation
+          </div>
+        ) : (
+          <>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+              {messages.map((msg, i) => {
+                const isMe = msg.sender_id === user?.id;
+                const showDateSep = i === 0 || !isSameDay(messages[i - 1].created_at, msg.created_at);
+
+                return (
+                  <div key={msg.id}>
+                    {showDateSep && (
+                      <div className="flex items-center gap-3 my-4">
+                        <div className="flex-1 h-px bg-gray-200" />
+                        <span className="text-xs text-gray-400">{formatDateSeparator(msg.created_at)}</span>
+                        <div className="flex-1 h-px bg-gray-200" />
+                      </div>
+                    )}
+
+                    <div className={`flex items-start gap-3 ${isMe ? "flex-row-reverse" : ""}`}>
+                      {/* Avatar */}
+                      <div className="w-9 h-9 rounded-full bg-gray-200 shrink-0 overflow-hidden">
+                        {msg.sender_picture ? (
+                          <img src={fullUrl(msg.sender_picture)} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gray-300" />
+                        )}
+                      </div>
+
+                      <div className={`max-w-[60%] ${isMe ? "items-end" : "items-start"} flex flex-col gap-1`}>
+                        <div className={`flex items-center gap-2 text-xs text-gray-400 ${isMe ? "flex-row-reverse" : ""}`}>
+                          <span className="font-medium text-gray-600">{msg.sender_name}</span>
+                          <span>•</span>
+                          <span>{formatTime(msg.created_at)}</span>
+                        </div>
+
+                        <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                          isMe
+                            ? "bg-[#9F3A1D] text-white rounded-tr-sm"
+                            : "bg-white text-gray-800 rounded-tl-sm shadow-sm"
+                        }`}>
+                          {msg.content}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="border-t border-gray-100 bg-white px-6 py-4">
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Envoyer un message"
+                  className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#9F3A1D]/20"
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={!newMessage.trim()}
+                  className="w-10 h-10 rounded-full bg-[#9F3A1D] text-white flex items-center justify-center hover:opacity-90 transition disabled:opacity-40"
+                >
+                  <Send size={15} />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
