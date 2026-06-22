@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { fullUrl } from "@/lib/url";
+import starIcon from "../../../assets/images/Star.png";
 
 export default function PropertyDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const [property, setProperty] = useState<any>(null);
   const [startingConv, setStartingConv] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     api
@@ -39,6 +41,41 @@ export default function PropertyDetailClient({ id }: { id: string }) {
     }
   };
 
+  const gallery: string[] = property
+    ? [property.cover, ...(property.pictures || [])].filter(Boolean).map(fullUrl)
+    : [];
+
+  const openLightbox = (index: number) => setLightboxIndex(index);
+  const closeLightbox = () => setLightboxIndex(null);
+
+  const showPrev = useCallback(() => {
+    setLightboxIndex((current) => {
+      if (current === null) return current;
+      return (current - 1 + gallery.length) % gallery.length;
+    });
+  }, [gallery.length]);
+
+  const showNext = useCallback(() => {
+    setLightboxIndex((current) => {
+      if (current === null) return current;
+      return (current + 1) % gallery.length;
+    });
+  }, [gallery.length]);
+
+  // Navigation clavier dans la lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") showPrev();
+      if (e.key === "ArrowRight") showNext();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxIndex, showPrev, showNext]);
+
   if (!property) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -46,11 +83,6 @@ export default function PropertyDetailClient({ id }: { id: string }) {
       </div>
     );
   }
-
-  const gallery = [
-    property.cover,
-    ...(property.pictures || []),
-  ].filter(Boolean).map(fullUrl);
 
   return (
     <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10">
@@ -69,13 +101,18 @@ export default function PropertyDetailClient({ id }: { id: string }) {
               <img
                 src={gallery[0]}
                 alt={property.title}
-                className="w-full aspect-[4/5] rounded-2xl object-cover object-[center_45%]"
+                onClick={() => openLightbox(0)}
+                className="w-full aspect-[4/5] rounded-2xl object-cover object-[center_45%] cursor-pointer"
               />
               {gallery.length > 1 && (
                 <div className="grid grid-cols-4 gap-2 mt-2">
                   {gallery.slice(1, 5).map((image: string, index: number) => (
-                    <img key={index} src={image} alt=""
-                      className="w-full aspect-[3/4] rounded-xl object-cover object-[center_40%]"
+                    <img
+                      key={index}
+                      src={image}
+                      alt=""
+                      onClick={() => openLightbox(index + 1)}
+                      className="w-full aspect-[3/4] rounded-xl object-cover object-[center_40%] cursor-pointer"
                     />
                   ))}
                 </div>
@@ -86,12 +123,17 @@ export default function PropertyDetailClient({ id }: { id: string }) {
               <img
                 src={gallery[0]}
                 alt={property.title}
-                className="w-full h-[600px] rounded-2xl object-cover"
+                onClick={() => openLightbox(0)}
+                className="w-full h-[600px] rounded-2xl object-cover cursor-pointer"
               />
               <div className="grid grid-cols-2 gap-3">
                 {gallery.slice(1, 5).map((image: string, index: number) => (
-                  <img key={index} src={image} alt=""
-                    className="h-[293px] w-full object-cover rounded-2xl"
+                  <img
+                    key={index}
+                    src={image}
+                    alt=""
+                    onClick={() => openLightbox(index + 1)}
+                    className="h-[293px] w-full object-cover rounded-2xl cursor-pointer"
                   />
                 ))}
               </div>
@@ -133,9 +175,16 @@ export default function PropertyDetailClient({ id }: { id: string }) {
               alt={property.host?.name}
               className="w-16 h-16 rounded-xl object-cover"
             />
-            <div>
+            <div className="flex items-center justify-between flex-1 gap-3">
               <h3 className="font-medium">{property.host?.name}</h3>
-              <p className="text-sm text-gray-500 mt-1">{property.rating_avg || 0}</p>
+              <div className="flex items-center gap-1.5 bg-gray-100 rounded-xl px-3 py-1.5 w-fit">
+                <img
+                  src={starIcon.src}
+                  alt="Note"
+                  className="w-4 h-4 object-contain"
+                />
+                <span className="text-sm font-medium">{property.rating_avg || 0}</span>
+              </div>
             </div>
           </div>
 
@@ -152,6 +201,89 @@ export default function PropertyDetailClient({ id }: { id: string }) {
           </button>
         </aside>
       </div>
+
+      {/* Lightbox */}
+      {lightboxIndex !== null && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center animate-[fadeIn_0.2s_ease-out]"
+          onClick={closeLightbox}
+        >
+          {/* Bouton fermer */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              closeLightbox();
+            }}
+            aria-label="Fermer"
+            className="absolute top-4 right-4 md:top-6 md:right-6 text-white/80 hover:text-white text-3xl leading-none w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition"
+          >
+            ×
+          </button>
+
+          {/* Compteur */}
+          <div className="absolute top-4 left-4 md:top-6 md:left-6 text-white/80 text-sm font-medium">
+            {lightboxIndex + 1} / {gallery.length}
+          </div>
+
+          {/* Flèche précédente */}
+          {gallery.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                showPrev();
+              }}
+              aria-label="Image précédente"
+              className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition text-2xl"
+            >
+              ‹
+            </button>
+          )}
+
+          {/* Image en grand */}
+          <img
+            key={lightboxIndex}
+            src={gallery[lightboxIndex]}
+            alt={property.title}
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg animate-[fadeScaleIn_0.25s_ease-out]"
+          />
+
+          {/* Flèche suivante */}
+          {gallery.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                showNext();
+              }}
+              aria-label="Image suivante"
+              className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition text-2xl"
+            >
+              ›
+            </button>
+          )}
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        @keyframes fadeScaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </main>
   );
 }
