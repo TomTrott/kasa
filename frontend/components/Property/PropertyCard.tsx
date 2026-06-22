@@ -101,14 +101,18 @@ export default function PropertyCard({
           {!loading && (
             <button
               onClick={toggleFavorite}
-              className="absolute top-4 right-4 w-12 h-12 bg-white rounded-xl flex items-center justify-center"
+              className={
+                favorite
+                  ? "absolute top-4 right-4 w-12 h-12 bg-[#9F3A1D] rounded-xl flex items-center justify-center hover:opacity-90 transition"
+                  : "absolute top-4 right-4 w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center hover:opacity-90 transition"
+              }
             >
               <Heart
                 size={18}
                 className={
                   favorite
-                    ? "fill-gray-700 text-gray-700"
-                    : "text-gray-400"
+                    ? "fill-white text-white"
+                    : "fill-gray-500 text-gray-500"
                 }
               />
             </button>
