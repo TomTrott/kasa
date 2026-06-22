@@ -49,6 +49,8 @@ export default function ChatClient() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  // Sur mobile, contrôle quelle vue est affichée : la liste ou le détail d'une conversation
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const autoSelectedRef = useRef(false);
 
@@ -95,6 +97,7 @@ export default function ChatClient() {
 
   const selectConversation = async (conv: Conversation) => {
     setSelectedConv(conv);
+    setMobileView("detail");
     try {
       const res = await api.get(`/api/conversations/${conv.id}/messages`);
       setMessages(res.data);
@@ -104,6 +107,10 @@ export default function ChatClient() {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const backToList = () => {
+    setMobileView("list");
   };
 
   const sendMessage = async () => {
@@ -140,7 +147,11 @@ export default function ChatClient() {
     <div className="flex h-[calc(100vh-80px)]">
 
       {/* ── Sidebar conversations ── */}
-      <div className="w-[300px] shrink-0 flex flex-col border-r border-gray-100 bg-white">
+      <div
+        className={`w-full md:w-[300px] shrink-0 flex flex-col border-r border-gray-100 bg-white ${
+          mobileView === "detail" ? "hidden md:flex" : "flex"
+        }`}
+      >
         <div className="px-5 pt-6 pb-4">
           <button
             onClick={() => router.back()}
@@ -198,14 +209,28 @@ export default function ChatClient() {
       </div>
 
       {/* ── Zone messages ── */}
-      <div className="flex-1 flex flex-col">
+      <div
+        className={`flex-1 flex flex-col ${
+          mobileView === "list" ? "hidden md:flex" : "flex"
+        }`}
+      >
         {!selectedConv ? (
           <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
             Sélectionnez une conversation
           </div>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+            {/* Bouton retour visible uniquement sur mobile, ramène à la liste des conversations */}
+            <div className="md:hidden px-4 pt-4">
+              <button
+                onClick={backToList}
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800"
+              >
+                <ArrowLeft size={14} /> Retour
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-4">
               {messages.map((msg, i) => {
                 const isMe = msg.sender_id === user?.id;
                 const showDateSep = i === 0 || !isSameDay(messages[i - 1].created_at, msg.created_at);
@@ -221,7 +246,7 @@ export default function ChatClient() {
                     )}
 
                     <div className={`flex items-start gap-3 ${isMe ? "flex-row-reverse" : ""}`}>
-                      <div className="w-9 h-9 rounded-full bg-gray-200 shrink-0 overflow-hidden">
+                      <div className="w-9 h-9 rounded-lg bg-gray-200 shrink-0 overflow-hidden">
                         {msg.sender_picture ? (
                           <img src={fullUrl(msg.sender_picture)} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -229,7 +254,7 @@ export default function ChatClient() {
                         )}
                       </div>
 
-                      <div className={`max-w-[60%] ${isMe ? "items-end" : "items-start"} flex flex-col gap-1`}>
+                      <div className={`max-w-[75%] md:max-w-[60%] ${isMe ? "items-end" : "items-start"} flex flex-col gap-1`}>
                         <div className={`flex items-center gap-2 text-xs text-gray-400 ${isMe ? "flex-row-reverse" : ""}`}>
                           <span className="font-medium text-gray-600">{msg.sender_name}</span>
                           <span>•</span>
@@ -251,7 +276,7 @@ export default function ChatClient() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="border-t border-gray-100 bg-white px-6 py-4">
+            <div className="border-t border-gray-100 bg-white px-4 md:px-6 py-4">
               <div className="flex items-center gap-3">
                 <input
                   type="text"
@@ -264,7 +289,7 @@ export default function ChatClient() {
                 <button
                   onClick={sendMessage}
                   disabled={!newMessage.trim()}
-                  className="w-10 h-10 rounded-full bg-[#9F3A1D] text-white flex items-center justify-center hover:opacity-90 transition disabled:opacity-40"
+                  className="w-10 h-10 rounded-lg bg-[#9F3A1D] text-white flex items-center justify-center hover:opacity-90 transition disabled:opacity-40 shrink-0"
                 >
                   <Send size={15} />
                 </button>
