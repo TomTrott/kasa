@@ -42,7 +42,7 @@ export default function HomeClient() {
           </p>
         </div>
 
-        <div className="relative w-full h-[250px] md:h-[450px] lg:h-[550px] overflow-hidden rounded-[24px]">
+        <div className="relative w-full aspect-[3/4] md:aspect-auto md:h-[450px] lg:h-[550px] overflow-hidden rounded-[24px]">
           <Image
             src={PhotoAccueil}
             alt="Maison moderne"
