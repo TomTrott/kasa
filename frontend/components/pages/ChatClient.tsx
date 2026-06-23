@@ -144,15 +144,15 @@ export default function ChatClient() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-80px)]">
+    <div className="flex h-[calc(100dvh-153px)] md:h-[calc(100dvh-190px)] overflow-hidden">
 
       {/* ── Sidebar conversations ── */}
       <div
-        className={`w-full md:w-[300px] shrink-0 flex flex-col border-r border-gray-100 bg-white ${
+        className={`w-full md:w-[300px] shrink-0 flex flex-col min-h-0 border-r border-gray-100 bg-white ${
           mobileView === "detail" ? "hidden md:flex" : "flex"
         }`}
       >
-        <div className="px-5 pt-6 pb-4">
+        <div className="px-5 pt-6 pb-4 shrink-0">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-1.5 text-sm text-gray-500 mb-5 hover:text-gray-800"
@@ -162,7 +162,7 @@ export default function ChatClient() {
           <h1 className="text-2xl font-semibold">Messages</h1>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {conversations.length === 0 ? (
             <p className="text-sm text-gray-400 px-5">Aucune conversation</p>
           ) : (
@@ -210,7 +210,7 @@ export default function ChatClient() {
 
       {/* ── Zone messages ── */}
       <div
-        className={`flex-1 flex flex-col ${
+        className={`flex-1 flex flex-col min-h-0 ${
           mobileView === "list" ? "hidden md:flex" : "flex"
         }`}
       >
@@ -221,7 +221,7 @@ export default function ChatClient() {
         ) : (
           <>
             {/* Bouton retour visible uniquement sur mobile, ramène à la liste des conversations */}
-            <div className="md:hidden px-4 pt-4">
+            <div className="md:hidden px-4 pt-4 shrink-0">
               <button
                 onClick={backToList}
                 className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800"
@@ -230,7 +230,7 @@ export default function ChatClient() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 py-6 space-y-4">
               {messages.map((msg, i) => {
                 const isMe = msg.sender_id === user?.id;
                 const showDateSep = i === 0 || !isSameDay(messages[i - 1].created_at, msg.created_at);
@@ -276,7 +276,7 @@ export default function ChatClient() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="border-t border-gray-100 bg-white px-4 md:px-6 py-4">
+            <div className="border-t border-gray-100 bg-white px-4 md:px-6 py-4 shrink-0">
               <div className="flex items-center gap-3">
                 <input
                   type="text"
