@@ -159,7 +159,7 @@ export default function NewPropertyPage() {
           onClick={() => router.back()}
           className="mb-6 flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50"
         >
-          <ArrowLeft size={14} />
+          <ArrowLeft size={14} aria-hidden="true" />
           Retour
         </button>
 
@@ -177,7 +177,7 @@ export default function NewPropertyPage() {
           </div>
 
           {error && (
-            <div className="mb-5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+            <div className="mb-5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600" role="alert">
               {error}
             </div>
           )}
@@ -188,10 +188,14 @@ export default function NewPropertyPage() {
             {/* Infos logement */}
             <div className="rounded-lg bg-white p-6 shadow-sm space-y-5">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-800">
+                <label
+                  htmlFor="title"
+                  className="mb-1.5 block text-sm font-medium text-gray-800"
+                >
                   Titre de la propriété <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="title"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -201,8 +205,14 @@ export default function NewPropertyPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-800">Description</label>
+                <label
+                  htmlFor="description"
+                  className="mb-1.5 block text-sm font-medium text-gray-800"
+                >
+                  Description
+                </label>
                 <textarea
+                  id="description"
                   rows={5}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -212,8 +222,14 @@ export default function NewPropertyPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-800">Prix par nuit (€) <span className="text-red-500">*</span></label>
+                <label
+                  htmlFor="price-per-night"
+                  className="mb-1.5 block text-sm font-medium text-gray-800"
+                >
+                  Prix par nuit (€) <span className="text-red-500">*</span>
+                </label>
                 <input
+                  id="price-per-night"
                   type="number"
                   min="1"
                   value={pricePerNight}
@@ -224,8 +240,14 @@ export default function NewPropertyPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-800">Code postal</label>
+                <label
+                  htmlFor="postal-code"
+                  className="mb-1.5 block text-sm font-medium text-gray-800"
+                >
+                  Code postal
+                </label>
                 <input
+                  id="postal-code"
                   type="text"
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
@@ -234,8 +256,14 @@ export default function NewPropertyPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-800">Localisation</label>
+                <label
+                  htmlFor="location"
+                  className="mb-1.5 block text-sm font-medium text-gray-800"
+                >
+                  Localisation
+                </label>
                 <input
+                  id="location"
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
@@ -252,43 +280,69 @@ export default function NewPropertyPage() {
 
                 {/* Cover */}
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-800">Image de couverture</label>
+                  <p className="mb-2 block text-sm font-medium text-gray-800">
+                    Image de couverture
+                  </p>
                   <div className="flex items-center gap-2">
                     {coverPreview ? (
-                      <img src={coverPreview} alt="cover" className="flex-1 h-10 rounded-lg object-cover border border-gray-200" />
+                      <img
+                        src={coverPreview}
+                        alt="Aperçu de l'image de couverture"
+                        className="flex-1 h-10 rounded-lg object-cover border border-gray-200"
+                      />
                     ) : (
                       <div className="flex-1 rounded-lg border border-gray-200 bg-white h-10" />
                     )}
                     <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-[#A54320] text-white hover:opacity-90 shrink-0">
-                      <Plus size={16} />
-                      <input type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+                      <Plus size={16} aria-hidden="true" />
+                      <span className="sr-only">Ajouter une image de couverture</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleCoverChange}
+                      />
                     </label>
                   </div>
                 </div>
 
                 {/* Pictures */}
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-800">Images du logement</label>
+                  <p className="mb-2 block text-sm font-medium text-gray-800">
+                    Images du logement
+                  </p>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 rounded-lg border border-gray-200 bg-white h-10 overflow-hidden flex items-center gap-1 px-2">
                       {picturePreviews.length > 0 ? (
                         picturePreviews.map((src, i) => (
                           <div key={i} className="relative shrink-0">
-                            <img src={src} alt="" className="h-8 w-8 rounded object-cover" />
+                            <img
+                              src={src}
+                              alt={`Aperçu image du logement ${i + 1}`}
+                              className="h-8 w-8 rounded object-cover"
+                            />
                             <button
                               type="button"
                               onClick={() => removePicture(i)}
+                              aria-label={`Supprimer l'image ${i + 1}`}
                               className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-gray-700 text-white rounded-full flex items-center justify-center"
                             >
-                              <X size={8} />
+                              <X size={8} aria-hidden="true" />
                             </button>
                           </div>
                         ))
                       ) : null}
                     </div>
                     <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-[#A54320] text-white hover:opacity-90 shrink-0">
-                      <Plus size={16} />
-                      <input type="file" accept="image/*" multiple className="hidden" onChange={handlePicturesChange} />
+                      <Plus size={16} aria-hidden="true" />
+                      <span className="sr-only">Ajouter des images du logement</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={handlePicturesChange}
+                      />
                     </label>
                   </div>
                 </div>
@@ -298,8 +352,14 @@ export default function NewPropertyPage() {
               {/* Hôte */}
               <div className="rounded-lg bg-white p-6 shadow-sm space-y-5">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-800">Nom de l'hôte</label>
+                  <label
+                    htmlFor="host-name"
+                    className="mb-1.5 block text-sm font-medium text-gray-800"
+                  >
+                    Nom de l'hôte
+                  </label>
                   <input
+                    id="host-name"
                     type="text"
                     value={hostName}
                     onChange={(e) => setHostName(e.target.value)}
@@ -308,16 +368,28 @@ export default function NewPropertyPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-800">Photo de profil</label>
+                  <p className="mb-2 block text-sm font-medium text-gray-800">
+                    Photo de profil
+                  </p>
                   <div className="flex items-center gap-2">
                     {hostPicturePreview ? (
-                      <img src={hostPicturePreview} alt="host" className="flex-1 h-10 rounded-lg object-cover border border-gray-200" />
+                      <img
+                        src={hostPicturePreview}
+                        alt="Aperçu de la photo de profil de l'hôte"
+                        className="flex-1 h-10 rounded-lg object-cover border border-gray-200"
+                      />
                     ) : (
                       <div className="flex-1 rounded-lg border border-gray-200 bg-white h-10" />
                     )}
                     <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-[#A54320] text-white hover:opacity-90 shrink-0">
-                      <Plus size={16} />
-                      <input type="file" accept="image/*" className="hidden" onChange={handleHostPictureChange} />
+                      <Plus size={16} aria-hidden="true" />
+                      <span className="sr-only">Ajouter une photo de profil de l'hôte</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleHostPictureChange}
+                      />
                     </label>
                   </div>
                 </div>
@@ -363,6 +435,7 @@ export default function NewPropertyPage() {
                     key={tag}
                     type="button"
                     onClick={() => toggleTag(tag)}
+                    aria-pressed={selectedTags.includes(tag)}
                     className={`rounded-lg px-3 py-1.5 text-sm transition ${
                       selectedTags.includes(tag)
                         ? "bg-[#A54320] text-white"
@@ -374,11 +447,15 @@ export default function NewPropertyPage() {
                 ))}
               </div>
 
-              <label className="mb-2 block text-sm font-medium text-gray-800">
+              <label
+                htmlFor="new-tag"
+                className="mb-2 block text-sm font-medium text-gray-800"
+              >
                 Ajouter une catégorie personnalisée
               </label>
               <div className="flex gap-3">
                 <input
+                  id="new-tag"
                   type="text"
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
@@ -389,9 +466,10 @@ export default function NewPropertyPage() {
                 <button
                   type="button"
                   onClick={addCustomTag}
+                  aria-label="Ajouter le tag"
                   className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#A54320] text-white hover:opacity-90"
                 >
-                  <Plus size={16} />
+                  <Plus size={16} aria-hidden="true" />
                 </button>
               </div>
             </div>

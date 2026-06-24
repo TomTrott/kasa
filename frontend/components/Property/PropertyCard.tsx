@@ -101,6 +101,10 @@ export default function PropertyCard({
           {!loading && (
             <button
               onClick={toggleFavorite}
+              aria-label={
+                favorite ? "Retirer des favoris" : "Ajouter aux favoris"
+              }
+              aria-pressed={favorite}
               className={
                 favorite
                   ? "absolute top-4 right-4 w-12 h-12 bg-[#9F3A1D] rounded-xl flex items-center justify-center hover:opacity-90 transition"

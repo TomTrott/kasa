@@ -157,7 +157,7 @@ export default function ChatClient() {
             onClick={() => router.back()}
             className="flex items-center gap-1.5 text-sm text-gray-500 mb-5 hover:text-gray-800"
           >
-            <ArrowLeft size={14} /> Retour
+            <ArrowLeft size={14} aria-hidden="true" /> Retour
           </button>
           <h1 className="text-2xl font-semibold">Messages</h1>
         </div>
@@ -170,6 +170,9 @@ export default function ChatClient() {
               <button
                 key={conv.id}
                 onClick={() => selectConversation(conv)}
+                aria-label={`Conversation avec ${conv.other_user_name}${
+                  conv.unread_count > 0 ? `, ${conv.unread_count} message(s) non lu(s)` : ""
+                }`}
                 className={`w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left border-b border-gray-50 ${
                   selectedConv?.id === conv.id ? "bg-gray-50" : ""
                 }`}
@@ -226,7 +229,7 @@ export default function ChatClient() {
                 onClick={backToList}
                 className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800"
               >
-                <ArrowLeft size={14} /> Retour
+                <ArrowLeft size={14} aria-hidden="true" /> Retour
               </button>
             </div>
 
@@ -277,8 +280,18 @@ export default function ChatClient() {
             </div>
 
             <div className="border-t border-gray-100 bg-white px-4 md:px-6 py-4 shrink-0">
-              <div className="flex items-center gap-3">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  sendMessage();
+                }}
+                className="flex items-center gap-3"
+              >
+                <label htmlFor="chat-message" className="sr-only">
+                  Votre message
+                </label>
                 <input
+                  id="chat-message"
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
@@ -287,13 +300,14 @@ export default function ChatClient() {
                   className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#9F3A1D]/20"
                 />
                 <button
-                  onClick={sendMessage}
+                  type="submit"
                   disabled={!newMessage.trim()}
+                  aria-label="Envoyer le message"
                   className="w-10 h-10 rounded-lg bg-[#9F3A1D] text-white flex items-center justify-center hover:opacity-90 transition disabled:opacity-40 shrink-0"
                 >
-                  <Send size={15} />
+                  <Send size={15} aria-hidden="true" />
                 </button>
-              </div>
+              </form>
             </div>
           </>
         )}
