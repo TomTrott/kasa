@@ -1,7 +1,7 @@
 "use client";
-import Logo from "@/assets/images/Logo.png";
-import MobileLogo from "@/assets/images/Logo-mobile.png";
-import BurgerIcon from "@/assets/images/burger.png";
+import Logo from "@/assets/images/Logo.webp";
+import MobileLogo from "@/assets/images/Logo-mobile.webp";
+import BurgerIcon from "@/assets/images/burger.webp";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
@@ -14,12 +14,13 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+  //  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
+    // Charger l'utilisateur et le nombre de favoris depuis le localStorage
     const loadUser = async () => {
       const storedUser = localStorage.getItem("user");
       const token = localStorage.getItem("token");
-
+      // setIsLoading(false);
       if (!storedUser || !token) {
         setUser(null);
         setFavoritesCount(0);
@@ -28,7 +29,7 @@ export default function Navbar() {
 
       const userData = JSON.parse(storedUser);
       setUser(userData);
-
+      // Récupérer le nombre de favoris depuis l'API
       try {
         const res = await api.get(`/api/users/${userData.id}/favorites`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -38,7 +39,7 @@ export default function Navbar() {
         console.error(err);
       }
     };
-
+    // Appeler la fonction loadUser au montage du composant et lors des événements "auth-changed" et "favorites-changed"
     loadUser();
     window.addEventListener("auth-changed", loadUser);
     window.addEventListener("favorites-changed", loadUser);
@@ -48,7 +49,7 @@ export default function Navbar() {
       window.removeEventListener("favorites-changed", loadUser);
     };
   }, []);
-
+  // Fonction de déconnexion
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -57,7 +58,7 @@ export default function Navbar() {
     window.dispatchEvent(new Event("auth-changed"));
     router.push("/login");
   };
-
+  // Fonction pour fermer le menu mobile et naviguer vers une page
   const closeAndNavigate = (path: string) => {
     setMobileMenuOpen(false);
     router.push(path);

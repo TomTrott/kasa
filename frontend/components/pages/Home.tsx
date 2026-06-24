@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import api from "@/services/api";
 import PropertyCard from "@/components/Property/PropertyCard";
-import PhotoAccueil from "@/assets/images/Photo-accueil.png";
+import PhotoAccueil from "@/assets/images/Photo-accueil.webp";
 
 export default function HomeClient() {
   const [properties, setProperties] = useState<any[]>([]);

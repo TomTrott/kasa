@@ -1,5 +1,5 @@
 import Image from "next/image";
-import MobileLogo from "@/assets/images/Logo-mobile.png";
+import MobileLogo from "@/assets/images/Logo-mobile.webp";
 
 export default function Footer() {
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect, useRef, memo } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import api from "@/services/api";
@@ -17,6 +17,116 @@ const defaultTags: string[] = [
   "Parc", "Night Life", "Culture", "Nature", "Touristique",
   "Vue sur mer", "Pour les couples", "Famille", "Forêt",
 ];
+
+// Compression image côté client avant upload
+async function compressImage(
+  file: File,
+  maxWidth = 1920,
+  maxHeight = 1920,
+  quality = 0.8
+): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
+    return file;
+  }
+  // Pas besoin de recompresser un fichier déjà léger
+  if (file.size < 300_000) return file;
+  // Pas besoin de recompresser un fichier déjà au format webp
+  try {
+    const bitmap = await createImageBitmap(file);
+    let { width, height } = bitmap;
+    // Redimensionnement si l'image dépasse les dimensions max
+    if (width > maxWidth || height > maxHeight) {
+      const ratio = Math.min(maxWidth / width, maxHeight / height);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+    }
+    // Création d'un canvas pour dessiner l'image redimensionnée
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    // Conversion du canvas en blob webp
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/webp", quality)
+    );
+    if (!blob) return file;
+
+    return new File([blob], file.name.replace(/\.\w+$/, ".webp"), {
+      type: "image/webp",
+    });
+  } catch {
+    // Si createImageBitmap/canvas échoue on garde le fichier original
+    return file;
+  }
+}
+// Évite de re-render la grille d'équipements / les tags à chaque frappe
+const EquipmentsList = memo(function EquipmentsList({
+  selected,
+  onToggle,
+}: {
+  selected: string[];
+  onToggle: (eq: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-y-3">
+      {equipments.map((eq) => (
+        <label
+          key={eq}
+          className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            checked={selected.includes(eq)}
+            onChange={() => onToggle(eq)}
+            className="accent-[#A54320]"
+          />
+          {eq}
+        </label>
+      ))}
+    </div>
+  );
+});
+// Évite de re-render la grille d'équipements / les tags à chaque frappe
+const TagsSelector = memo(function TagsSelector({
+  selected,
+  onToggle,
+}: {
+  selected: string[];
+  onToggle: (t: string) => void;
+}) {
+  const customTags = selected.filter((t) => !defaultTags.includes(t));
+
+  return (
+    <div className="mb-6 flex flex-wrap gap-2">
+      {customTags.map((tag) => (
+        <button
+          key={tag}
+          type="button"
+          onClick={() => onToggle(tag)}
+          className="rounded-lg px-3 py-1.5 text-sm transition bg-[#A54320] text-white"
+        >
+          {tag}
+        </button>
+      ))}
+      {defaultTags.map((tag) => (
+        <button
+          key={tag}
+          type="button"
+          onClick={() => onToggle(tag)}
+          aria-pressed={selected.includes(tag)}
+          className={`rounded-lg px-3 py-1.5 text-sm transition ${selected.includes(tag)
+            ? "bg-[#A54320] text-white"
+            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+        >
+          {tag}
+        </button>
+      ))}
+    </div>
+  );
+});
 
 export default function NewPropertyPage() {
   const router = useRouter();
@@ -46,21 +156,41 @@ export default function NewPropertyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const toggleEquipment = (e: string) =>
+  // --- Nettoyage des object URLs pour éviter les fuites mémoire ---
+  const previewsRef = useRef({ coverPreview, hostPicturePreview, picturePreviews });
+  useEffect(() => {
+    previewsRef.current = { coverPreview, hostPicturePreview, picturePreviews };
+  }, [coverPreview, hostPicturePreview, picturePreviews]);
+  // On nettoie les object URLs quand le composant est démonté
+  useEffect(() => {
+    return () => {
+      const { coverPreview, hostPicturePreview, picturePreviews } = previewsRef.current;
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      if (hostPicturePreview) URL.revokeObjectURL(hostPicturePreview);
+      picturePreviews.forEach((src) => URL.revokeObjectURL(src));
+    };
+  }, []);
+  // Gestion des équipements et tags sélectionnés
+  const toggleEquipment = useCallback((e: string) => {
     setSelectedEquipments((prev) =>
       prev.includes(e) ? prev.filter((i) => i !== e) : [...prev, e]
     );
-
-  const toggleTag = (t: string) =>
+  }, []);
+  // Gestion des équipements et tags sélectionnés
+  const toggleTag = useCallback((t: string) => {
     setSelectedTags((prev) =>
       prev.includes(t) ? prev.filter((i) => i !== t) : [...prev, t]
     );
-
-  const addCustomTag = () => {
-    if (!newTag.trim()) return;
-    setSelectedTags((prev) => [...prev, newTag.trim()]);
-    setNewTag("");
-  };
+  }, []);
+  // Ajout d'un tag personnalisé
+  const addCustomTag = useCallback(() => {
+    setNewTag((current) => {
+      if (current.trim()) {
+        setSelectedTags((prev) => [...prev, current.trim()]);
+      }
+      return "";
+    });
+  }, []);
 
   // Upload d'une image vers l'API
   const uploadImage = async (file: File): Promise<string> => {
@@ -71,62 +201,76 @@ export default function NewPropertyPage() {
     });
     return res.data.url;
   };
-
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setCoverFile(file);
-    setCoverPreview(URL.createObjectURL(file));
-  };
-
-  const handlePicturesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    setPictureFiles((prev) => [...prev, ...files]);
-    setPicturePreviews((prev) => [
-      ...prev,
-      ...files.map((f) => URL.createObjectURL(f)),
-    ]);
-  };
-
-  const removePicture = (index: number) => {
+  // Gestion des changements de fichiers pour les images
+  const handleCoverChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const compressed = await compressImage(file);
+      setCoverFile(compressed);
+      setCoverPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(compressed);
+      });
+    },
+    []
+  );
+  // Gestion des changements de fichiers pour les images
+  const handlePicturesChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      if (!files.length) return;
+      // Compression en parallèle de toutes les images sélectionnées
+      const compressed = await Promise.all(files.map((f) => compressImage(f)));
+      setPictureFiles((prev) => [...prev, ...compressed]);
+      setPicturePreviews((prev) => [
+        ...prev,
+        ...compressed.map((f) => URL.createObjectURL(f)),
+      ]);
+    },
+    []
+  );
+  // Suppression d'une image du logement
+  const removePicture = useCallback((index: number) => {
     setPictureFiles((prev) => prev.filter((_, i) => i !== index));
-    setPicturePreviews((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleHostPictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setHostPictureFile(file);
-    setHostPicturePreview(URL.createObjectURL(file));
-  };
-
+    setPicturePreviews((prev) => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  }, []);
+  // Gestion des changements de fichiers pour les images
+  const handleHostPictureChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const compressed = await compressImage(file);
+      setHostPictureFile(compressed);
+      setHostPicturePreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(compressed);
+      });
+    },
+    []
+  );
+  // Soumission du formulaire
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
     if (!title.trim()) return setError("Le titre est obligatoire.");
-    if (!pricePerNight || isNaN(Number(pricePerNight))) return setError("Le prix par nuit est obligatoire.");
+    if (!pricePerNight || isNaN(Number(pricePerNight)))
+      return setError("Le prix par nuit est obligatoire.");
 
     setSubmitting(true);
 
     try {
-      // 1. Upload cover
-      let coverUrl: string | undefined;
-      if (coverFile) coverUrl = await uploadImage(coverFile);
-
-      // 2. Upload pictures
-      const pictureUrls: string[] = [];
-      for (const file of pictureFiles) {
-        const url = await uploadImage(file);
-        pictureUrls.push(url);
-      }
-
-      // 3. Upload host picture
-      let hostPictureUrl: string | undefined;
-      if (hostPictureFile) hostPictureUrl = await uploadImage(hostPictureFile);
-
-      // 4. Créer la propriété
+      // Tous les uploads partent EN PARALLÈLE au lieu de l'un après l'autre :
+      const [coverUrl, pictureUrls, hostPictureUrl] = await Promise.all([
+        coverFile ? uploadImage(coverFile) : Promise.resolve(undefined),
+        Promise.all(pictureFiles.map((file) => uploadImage(file))),
+        hostPictureFile ? uploadImage(hostPictureFile) : Promise.resolve(undefined),
+      ]);
+      // Construction du payload pour l'API
       const payload = {
         title: title.trim(),
         description: description.trim() || undefined,
@@ -140,7 +284,7 @@ export default function NewPropertyPage() {
         equipments: selectedEquipments,
         tags: selectedTags,
       };
-
+      // Envoi du payload à l'API pour créer la propriété
       const res = await api.post("/api/properties", payload);
       router.push(`/properties/${res.data.id}`);
     } catch (err: any) {
@@ -153,7 +297,6 @@ export default function NewPropertyPage() {
   return (
     <div className="min-h-screen bg-[#FFFBF9]">
       <main className="py-6 px-6 lg:px-0 lg:w-[75%] lg:mx-auto">
-
         <button
           type="button"
           onClick={() => router.back()}
@@ -164,7 +307,6 @@ export default function NewPropertyPage() {
         </button>
 
         <form onSubmit={handleSubmit}>
-
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-gray-900">Ajouter une propriété</h1>
             <button
@@ -177,21 +319,20 @@ export default function NewPropertyPage() {
           </div>
 
           {error && (
-            <div className="mb-5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600" role="alert">
+            <div
+              className="mb-5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600"
+              role="alert"
+            >
               {error}
             </div>
           )}
 
           {/* Ligne 1 : Infos + Images */}
           <div className="grid gap-5 lg:grid-cols-2 mb-5">
-
             {/* Infos logement */}
             <div className="rounded-lg bg-white p-6 shadow-sm space-y-5">
               <div>
-                <label
-                  htmlFor="title"
-                  className="mb-1.5 block text-sm font-medium text-gray-800"
-                >
+                <label htmlFor="title" className="mb-1.5 block text-sm font-medium text-gray-800">
                   Titre de la propriété <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -205,10 +346,7 @@ export default function NewPropertyPage() {
               </div>
 
               <div>
-                <label
-                  htmlFor="description"
-                  className="mb-1.5 block text-sm font-medium text-gray-800"
-                >
+                <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-gray-800">
                   Description
                 </label>
                 <textarea
@@ -222,10 +360,7 @@ export default function NewPropertyPage() {
               </div>
 
               <div>
-                <label
-                  htmlFor="price-per-night"
-                  className="mb-1.5 block text-sm font-medium text-gray-800"
-                >
+                <label htmlFor="price-per-night" className="mb-1.5 block text-sm font-medium text-gray-800">
                   Prix par nuit (€) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -240,10 +375,7 @@ export default function NewPropertyPage() {
               </div>
 
               <div>
-                <label
-                  htmlFor="postal-code"
-                  className="mb-1.5 block text-sm font-medium text-gray-800"
-                >
+                <label htmlFor="postal-code" className="mb-1.5 block text-sm font-medium text-gray-800">
                   Code postal
                 </label>
                 <input
@@ -256,10 +388,7 @@ export default function NewPropertyPage() {
               </div>
 
               <div>
-                <label
-                  htmlFor="location"
-                  className="mb-1.5 block text-sm font-medium text-gray-800"
-                >
+                <label htmlFor="location" className="mb-1.5 block text-sm font-medium text-gray-800">
                   Localisation
                 </label>
                 <input
@@ -274,10 +403,8 @@ export default function NewPropertyPage() {
 
             {/* Colonne droite */}
             <div className="flex flex-col gap-5">
-
               {/* Images */}
               <div className="rounded-lg bg-white p-6 shadow-sm space-y-5">
-
                 {/* Cover */}
                 <div>
                   <p className="mb-2 block text-sm font-medium text-gray-800">
@@ -313,25 +440,23 @@ export default function NewPropertyPage() {
                   </p>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 rounded-lg border border-gray-200 bg-white h-10 overflow-hidden flex items-center gap-1 px-2">
-                      {picturePreviews.length > 0 ? (
-                        picturePreviews.map((src, i) => (
-                          <div key={i} className="relative shrink-0">
-                            <img
-                              src={src}
-                              alt={`Aperçu image du logement ${i + 1}`}
-                              className="h-8 w-8 rounded object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removePicture(i)}
-                              aria-label={`Supprimer l'image ${i + 1}`}
-                              className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-gray-700 text-white rounded-full flex items-center justify-center"
-                            >
-                              <X size={8} aria-hidden="true" />
-                            </button>
-                          </div>
-                        ))
-                      ) : null}
+                      {picturePreviews.map((src, i) => (
+                        <div key={src} className="relative shrink-0">
+                          <img
+                            src={src}
+                            alt={`Aperçu image du logement ${i + 1}`}
+                            className="h-8 w-8 rounded object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePicture(i)}
+                            aria-label={`Supprimer l'image ${i + 1}`}
+                            className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-gray-700 text-white rounded-full flex items-center justify-center"
+                          >
+                            <X size={8} aria-hidden="true" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                     <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-[#A54320] text-white hover:opacity-90 shrink-0">
                       <Plus size={16} aria-hidden="true" />
@@ -346,16 +471,12 @@ export default function NewPropertyPage() {
                     </label>
                   </div>
                 </div>
-
               </div>
 
               {/* Hôte */}
               <div className="rounded-lg bg-white p-6 shadow-sm space-y-5">
                 <div>
-                  <label
-                    htmlFor="host-name"
-                    className="mb-1.5 block text-sm font-medium text-gray-800"
-                  >
+                  <label htmlFor="host-name" className="mb-1.5 block text-sm font-medium text-gray-800">
                     Nom de l'hôte
                   </label>
                   <input
@@ -399,58 +520,16 @@ export default function NewPropertyPage() {
 
           {/* Ligne 2 : Équipements + Catégories */}
           <div className="grid gap-5 lg:grid-cols-2">
-
             <div className="rounded-lg bg-white p-6 shadow-sm">
               <h2 className="mb-5 text-base font-semibold text-gray-900">Équipements</h2>
-              <div className="grid grid-cols-2 gap-y-3">
-                {equipments.map((eq) => (
-                  <label key={eq} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedEquipments.includes(eq)}
-                      onChange={() => toggleEquipment(eq)}
-                      className="accent-[#A54320]"
-                    />
-                    {eq}
-                  </label>
-                ))}
-              </div>
+              <EquipmentsList selected={selectedEquipments} onToggle={toggleEquipment} />
             </div>
 
             <div className="rounded-lg bg-white p-6 shadow-sm">
               <h2 className="mb-5 text-base font-semibold text-gray-900">Catégories</h2>
-              <div className="mb-6 flex flex-wrap gap-2">
-                {selectedTags.filter(t => !defaultTags.includes(t)).map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => toggleTag(tag)}
-                    className="rounded-lg px-3 py-1.5 text-sm transition bg-[#A54320] text-white"
-                  >
-                    {tag}
-                  </button>
-                ))}
-                {defaultTags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => toggleTag(tag)}
-                    aria-pressed={selectedTags.includes(tag)}
-                    className={`rounded-lg px-3 py-1.5 text-sm transition ${
-                      selectedTags.includes(tag)
-                        ? "bg-[#A54320] text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
+              <TagsSelector selected={selectedTags} onToggle={toggleTag} />
 
-              <label
-                htmlFor="new-tag"
-                className="mb-2 block text-sm font-medium text-gray-800"
-              >
+              <label htmlFor="new-tag" className="mb-2 block text-sm font-medium text-gray-800">
                 Ajouter une catégorie personnalisée
               </label>
               <div className="flex gap-3">
@@ -474,7 +553,6 @@ export default function NewPropertyPage() {
               </div>
             </div>
           </div>
-
         </form>
       </main>
     </div>

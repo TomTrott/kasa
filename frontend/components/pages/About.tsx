@@ -1,9 +1,7 @@
-"use client";
-
 import Image from "next/image";
 
-import PhotoApropos from "@/assets/images/Photo-apropos.png";
-import PhotoApropos2 from "@/assets/images/Photo-apropos2.png";
+import PhotoApropos from "@/assets/images/Photo-apropos.webp";
+import PhotoApropos2 from "@/assets/images/Photo-apropos2.webp";
 
 export default function AboutPageClient() {
   return (
@@ -26,7 +24,7 @@ export default function AboutPageClient() {
         </p>
       </section>
 
-      {/* Grande image */}
+      {/* Grande image — c'est l'élément LCP */}
       <section className="mb-16">
         <div className="relative w-full h-[520px] overflow-hidden rounded-[24px]">
           <Image
@@ -34,6 +32,8 @@ export default function AboutPageClient() {
             alt="Maison Kasa"
             fill
             priority
+            sizes="(min-width: 1280px) 1216px, 100vw"
+            quality={75}
             className="object-cover"
           />
         </div>
@@ -49,14 +49,8 @@ export default function AboutPageClient() {
             </h2>
 
             <ol className="space-y-8 text-[20px] text-[#222]">
-              <li>
-                1. Offrir une plateforme fiable et simple d’utilisation
-              </li>
-
-              <li>
-                2. Proposer des hébergements variés et de qualité
-              </li>
-
+              <li>1. Offrir une plateforme fiable et simple d’utilisation</li>
+              <li>2. Proposer des hébergements variés et de qualité</li>
               <li>
                 3. Favoriser des échanges humains et chaleureux entre hôtes et
                 voyageurs
@@ -78,6 +72,9 @@ export default function AboutPageClient() {
                 src={PhotoApropos2}
                 alt="Chalet"
                 fill
+                loading="lazy"
+                sizes="(min-width: 1024px) 520px, 100vw"
+                quality={75}
                 className="object-cover"
               />
             </div>

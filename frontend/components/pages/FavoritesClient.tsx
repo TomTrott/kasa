@@ -7,7 +7,7 @@ import PropertyCard from "@/components/Property/PropertyCard";
 export default function FavoritesClient() {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  // const [error, setError] = useState(null);
   const loadFavorites = async () => {
     try {
       const user = JSON.parse(
@@ -18,7 +18,7 @@ export default function FavoritesClient() {
         setFavorites([]);
         return;
       }
-
+      // setLoading(true);
       const res = await api.get(
         `/api/users/${user.id}/favorites`
       );
@@ -40,7 +40,7 @@ export default function FavoritesClient() {
       "favorites-changed",
       refresh
     );
-
+// Cleanup the event listener when the component unmounts
     return () =>
       window.removeEventListener(
         "favorites-changed",
