@@ -23,7 +23,7 @@ async function compressImage(
   file: File,
   maxWidth = 1920,
   maxHeight = 1920,
-  quality = 0.8
+  quality = 0.7
 ): Promise<File> {
   if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
     return file;
