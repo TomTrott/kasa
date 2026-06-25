@@ -263,6 +263,13 @@ export default function PropertyDetailClient({ id }: { id: string }) {
           >
             {startingConv ? "Redirection..." : "Contacter l'hôte"}
           </button>
+          <button
+            onClick={handleStartConversation}
+            disabled={startingConv}
+            className="w-full bg-[#9F3A1D] text-white rounded-xl py-3 mt-2 hover:opacity-90 transition disabled:opacity-60"
+          >
+            {startingConv ? "Redirection..." : "Envoyer un message"}
+          </button>
         </aside>
       </div>
 
