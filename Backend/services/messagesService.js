@@ -1,6 +1,5 @@
 // Constantes de configuration
 const MAX_MESSAGE_LENGTH = 5000;
-const DUPLICATE_WINDOW_SECONDS = 5;
 
 // Vérifie que l'utilisateur connecté fait bien partie de la conversation
 async function assertParticipant(db, conversationId, userId) {
@@ -140,25 +139,7 @@ async function sendMessage(db, conversationId, senderId, content) {
     throw err;
   }
 
-  // Anti-doublon
-  const recentDuplicate = await db.getAsync(`
-    SELECT m.*, u.name AS sender_name, u.picture AS sender_picture
-    FROM messages m
-    JOIN users u ON u.id = m.sender_id
-    WHERE m.conversation_id = ?
-      AND m.sender_id = ?
-      AND m.content = ?
-      AND m.created_at >= datetime('now', ?)
-    ORDER BY m.created_at DESC
-    LIMIT 1
-  `, [conversationId, senderId, trimmed, `-${DUPLICATE_WINDOW_SECONDS} seconds`]);
-
-  // Si un doublon récent est trouvé, on renvoie celui déjà existant au lieu d'en créer un deuxième
-  if (recentDuplicate) {
-    return recentDuplicate;
-  }
-
-  // Sinon on insère réellement le nouveau message
+  // Insertion du nouveau message
   const r = await db.runAsync(
     'INSERT INTO messages(conversation_id, sender_id, content) VALUES (?,?,?)',
     [conversationId, senderId, trimmed]
