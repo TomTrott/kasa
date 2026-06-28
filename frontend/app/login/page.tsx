@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import LoginPageClient from "@/components/pages/Login";
+import LoginPageClient from "@/components/pages/login/Login";
 
 export const metadata: Metadata = {
   title: "Connexion | Kasa",

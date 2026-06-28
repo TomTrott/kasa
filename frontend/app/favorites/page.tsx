@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import FavoritesClient from "@/components/pages/FavoritesClient";
+import FavoritesClient from "@/components/pages/favorite/FavoritesClient";
 
 export const metadata: Metadata = {
   title: "Mes Favoris | Kasa",

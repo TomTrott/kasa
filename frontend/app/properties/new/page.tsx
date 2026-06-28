@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import NewPropertyPage from "@/components/pages/AddProperties";
+import NewPropertyPage from "@/components/pages/addproperties/AddProperties";
 
 export const metadata: Metadata = {
   title: "Nouvelle Propriété | Kasa",

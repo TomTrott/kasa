@@ -3,7 +3,7 @@ import MobileLogo from "@/assets/images/Logo-mobile.webp";
 
 export default function Footer() {
   return (
-    <footer className="w-full border-t border-gray-100 px-8 py-4 flex items-center justify-between">
+    <footer className="w-full border-t bg-white border-gray-100 px-8 py-4 flex items-center justify-between">
       <Image
         src={MobileLogo}
         alt="Kasa logo"

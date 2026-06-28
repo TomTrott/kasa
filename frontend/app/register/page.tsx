@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import RegisterPageClient from "@/components/pages/Register";
+import RegisterPageClient from "@/components/pages/register/Register";
 
 export const metadata: Metadata = {
   title: "Inscription | Kasa",

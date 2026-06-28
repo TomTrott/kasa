@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import ChatClient from "@/components/pages/ChatClient";
+import ChatClient from "@/components/pages/chat/ChatClient";
 
 export const metadata: Metadata = {
   title: "Messagerie | Kasa",
