@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, memo } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, X } from "lucide-react";
+import { ArrowLeft, Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "@/services/api";
 
 const equipments: string[] = [
@@ -61,6 +61,87 @@ async function compressImage(
     return file;
   }
 }
+
+// État de la lightbox : liste d'images affichées + index courant
+type LightboxState = { images: string[]; index: number } | null;
+
+// Aperçu plein écran d'une image, avec navigation si plusieurs images
+const Lightbox = memo(function Lightbox({
+  state,
+  onClose,
+  onPrev,
+  onNext,
+}: {
+  state: LightboxState;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  if (!state) return null;
+  const { images, index } = state;
+  const hasMultiple = images.length > 1;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Aperçu de l'image en grand"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Fermer l'aperçu"
+        className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
+      >
+        <X size={20} aria-hidden="true" />
+      </button>
+
+      {hasMultiple && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPrev();
+          }}
+          aria-label="Image précédente"
+          className="absolute left-3 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
+        >
+          <ChevronLeft size={22} aria-hidden="true" />
+        </button>
+      )}
+
+      <img
+        src={images[index]}
+        alt="Aperçu en grand"
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+      />
+
+      {hasMultiple && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onNext();
+          }}
+          aria-label="Image suivante"
+          className="absolute right-3 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
+        >
+          <ChevronRight size={22} aria-hidden="true" />
+        </button>
+      )}
+
+      {hasMultiple && (
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-xs text-white">
+          {index + 1} / {images.length}
+        </div>
+      )}
+    </div>
+  );
+});
+
 // Évite de re-render la grille d'équipements / les tags à chaque frappe
 const EquipmentsList = memo(function EquipmentsList({
   selected,
@@ -156,6 +237,9 @@ export default function NewPropertyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Aperçu en grand (lightbox) — null quand fermée
+  const [lightbox, setLightbox] = useState<LightboxState>(null);
+
   // --- Nettoyage des object URLs pour éviter les fuites mémoire ---
   const previewsRef = useRef({ coverPreview, hostPicturePreview, picturePreviews });
   useEffect(() => {
@@ -170,6 +254,42 @@ export default function NewPropertyPage() {
       picturePreviews.forEach((src) => URL.revokeObjectURL(src));
     };
   }, []);
+
+  // Ouvre la lightbox sur une liste d'images, à un index donné
+  const openLightbox = useCallback((images: string[], index: number) => {
+    setLightbox({ images, index });
+  }, []);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+  const showPrevImage = useCallback(() => {
+    setLightbox((prev) =>
+      prev
+        ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }
+        : prev
+    );
+  }, []);
+  const showNextImage = useCallback(() => {
+    setLightbox((prev) =>
+      prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : prev
+    );
+  }, []);
+
+  // Navigation clavier (Échap / flèches) + on bloque le scroll de la page pendant l'aperçu
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") showPrevImage();
+      if (e.key === "ArrowRight") showNextImage();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [lightbox, closeLightbox, showPrevImage, showNextImage]);
+
   // Gestion des équipements et tags sélectionnés
   const toggleEquipment = useCallback((e: string) => {
     setSelectedEquipments((prev) =>
@@ -415,7 +535,8 @@ export default function NewPropertyPage() {
                       <img
                         src={coverPreview}
                         alt="Aperçu de l'image de couverture"
-                        className="flex-1 h-10 rounded-lg object-cover border border-gray-200"
+                        onClick={() => openLightbox([coverPreview], 0)}
+                        className="flex-1 h-10 rounded-lg object-cover border border-gray-200 cursor-pointer hover:opacity-80 transition"
                       />
                     ) : (
                       <div className="flex-1 rounded-lg border border-gray-200 bg-white h-10" />
@@ -445,7 +566,8 @@ export default function NewPropertyPage() {
                           <img
                             src={src}
                             alt={`Aperçu image du logement ${i + 1}`}
-                            className="h-8 w-8 rounded object-cover"
+                            onClick={() => openLightbox(picturePreviews, i)}
+                            className="h-8 w-8 rounded object-cover cursor-pointer hover:opacity-80 transition"
                           />
                           <button
                             type="button"
@@ -497,7 +619,8 @@ export default function NewPropertyPage() {
                       <img
                         src={hostPicturePreview}
                         alt="Aperçu de la photo de profil de l'hôte"
-                        className="flex-1 h-10 rounded-lg object-cover border border-gray-200"
+                        onClick={() => openLightbox([hostPicturePreview], 0)}
+                        className="flex-1 h-10 rounded-lg object-cover border border-gray-200 cursor-pointer hover:opacity-80 transition"
                       />
                     ) : (
                       <div className="flex-1 rounded-lg border border-gray-200 bg-white h-10" />
@@ -555,6 +678,13 @@ export default function NewPropertyPage() {
           </div>
         </form>
       </main>
+
+      <Lightbox
+        state={lightbox}
+        onClose={closeLightbox}
+        onPrev={showPrevImage}
+        onNext={showNextImage}
+      />
     </div>
   );
 }
