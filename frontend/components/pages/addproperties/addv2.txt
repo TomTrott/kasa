@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, memo } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Plus, X, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { ArrowLeft, Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "@/services/api";
 
 const equipments: string[] = [
@@ -18,10 +18,6 @@ const defaultTags: string[] = [
   "Vue sur mer", "Pour les couples", "Famille", "Forêt",
 ];
 
-// Libellés affichés au-dessus de la barre de progression, un par étape
-const stepLabels = ["Informations", "Images", "Équipements", "Catégories"];
-const TOTAL_STEPS = stepLabels.length;
-
 // Compression image côté client avant upload
 async function compressImage(
   file: File,
@@ -34,6 +30,7 @@ async function compressImage(
   }
   // Pas besoin de recompresser un fichier déjà léger
   if (file.size < 300_000) return file;
+  // Pas besoin de recompresser un fichier déjà au format webp
   try {
     const bitmap = await createImageBitmap(file);
     let { width, height } = bitmap;
@@ -145,57 +142,7 @@ const Lightbox = memo(function Lightbox({
   );
 });
 
-// Barre de progression
-const ProgressBar = memo(function ProgressBar({
-  step,
-  onStepClick,
-}: {
-  step: number;
-  onStepClick: (i: number) => void;
-}) {
-  return (
-    <div className="mb-8">
-      <div className="mb-3 flex justify-between">
-        {stepLabels.map((label, i) => {
-          const done = i < step;
-          const active = i === step;
-          return (
-            <button
-              key={label}
-              type="button"
-              onClick={() => onStepClick(i)}
-              className="flex flex-col items-center gap-1.5 text-xs"
-            >
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium transition ${
-                  done
-                    ? "bg-[#A54320] text-white"
-                    : active
-                    ? "border-2 border-[#A54320] text-[#A54320]"
-                    : "border border-gray-300 text-gray-400"
-                }`}
-              >
-                {done ? <Check size={12} aria-hidden="true" /> : i + 1}
-              </span>
-              <span className={active || done ? "text-gray-800" : "text-gray-400"}>
-                {label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      {/* bar de fond + remplissage proportionnel à l'étape atteinte */}
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
-        <div
-          className="h-full rounded-full bg-[#A54320] transition-all duration-300"
-          style={{ width: `${(step / (TOTAL_STEPS - 1)) * 100}%` }}
-        />
-      </div>
-    </div>
-  );
-});
-
-// Évite de re-render la grille d'équipements à chaque frappe ailleurs dans le form
+// Évite de re-render la grille d'équipements / les tags à chaque frappe
 const EquipmentsList = memo(function EquipmentsList({
   selected,
   onToggle,
@@ -222,8 +169,7 @@ const EquipmentsList = memo(function EquipmentsList({
     </div>
   );
 });
-
-// Évite de re-render les tags à chaque frappe ailleurs dans le form
+// Évite de re-render la grille d'équipements / les tags à chaque frappe
 const TagsSelector = memo(function TagsSelector({
   selected,
   onToggle,
@@ -251,11 +197,10 @@ const TagsSelector = memo(function TagsSelector({
           type="button"
           onClick={() => onToggle(tag)}
           aria-pressed={selected.includes(tag)}
-          className={`rounded-lg px-3 py-1.5 text-sm transition ${
-            selected.includes(tag)
-              ? "bg-[#A54320] text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
+          className={`rounded-lg px-3 py-1.5 text-sm transition ${selected.includes(tag)
+            ? "bg-[#A54320] text-white"
+            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
         >
           {tag}
         </button>
@@ -266,9 +211,6 @@ const TagsSelector = memo(function TagsSelector({
 
 export default function NewPropertyPage() {
   const router = useRouter();
-
-  // Étape courante du formulaire (0 à 3)
-  const [step, setStep] = useState(0);
 
   // Champs texte
   const [title, setTitle] = useState("");
@@ -303,6 +245,7 @@ export default function NewPropertyPage() {
   useEffect(() => {
     previewsRef.current = { coverPreview, hostPicturePreview, picturePreviews };
   }, [coverPreview, hostPicturePreview, picturePreviews]);
+  // On nettoie les object URLs quand le composant est démonté
   useEffect(() => {
     return () => {
       const { coverPreview, hostPicturePreview, picturePreviews } = previewsRef.current;
@@ -353,13 +296,13 @@ export default function NewPropertyPage() {
       prev.includes(e) ? prev.filter((i) => i !== e) : [...prev, e]
     );
   }, []);
-  // Gestion des tags sélectionnés
+  // Gestion des équipements et tags sélectionnés
   const toggleTag = useCallback((t: string) => {
     setSelectedTags((prev) =>
       prev.includes(t) ? prev.filter((i) => i !== t) : [...prev, t]
     );
   }, []);
-  // Ajoute un tag personnalisé à la liste des tags sélectionnés
+  // Ajout d'un tag personnalisé
   const addCustomTag = useCallback(() => {
     setNewTag((current) => {
       if (current.trim()) {
@@ -378,7 +321,7 @@ export default function NewPropertyPage() {
     });
     return res.data.url;
   };
-// Gestion de l'image de couverture (une seule)
+  // Gestion des changements de fichiers pour les images
   const handleCoverChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -392,7 +335,7 @@ export default function NewPropertyPage() {
     },
     []
   );
-// Gestion des images du logement (plusieurs)
+  // Gestion des changements de fichiers pour les images
   const handlePicturesChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
@@ -407,7 +350,7 @@ export default function NewPropertyPage() {
     },
     []
   );
-// Supprime une image du logement à un index donné
+  // Suppression d'une image du logement
   const removePicture = useCallback((index: number) => {
     setPictureFiles((prev) => prev.filter((_, i) => i !== index));
     setPicturePreviews((prev) => {
@@ -415,7 +358,7 @@ export default function NewPropertyPage() {
       return prev.filter((_, i) => i !== index);
     });
   }, []);
-// Gestion de la photo de profil de l'hôte (une seule)
+  // Gestion des changements de fichiers pour les images
   const handleHostPictureChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -429,33 +372,9 @@ export default function NewPropertyPage() {
     },
     []
   );
-
-  // Vérifie les champs obligatoires de l'étape "Informations" avant d'avancer
-  const goNext = useCallback(() => {
-    if (step === 0) {
-      if (!title.trim()) return setError("Le titre est obligatoire.");
-      if (!pricePerNight || isNaN(Number(pricePerNight)))
-        return setError("Le prix par nuit est obligatoire.");
-    }
-    setError(null);
-    setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
-  }, [step, title, pricePerNight]);
-
-  const goPrev = useCallback(() => {
-    setError(null);
-    setStep((s) => Math.max(s - 1, 0));
-  }, []);
-
-  // Clic direct sur une pastille de la barre de progression
-  const jumpToStep = useCallback((i: number) => {
-    setError(null);
-    setStep(i);
-  }, []);
-
-  // Soumission finale : uniquement possible depuis la dernière étape
+  // Soumission du formulaire
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (step !== TOTAL_STEPS - 1) return; // sécurité : le bouton submit n'existe qu'à la dernière étape
     setError(null);
 
     if (!title.trim()) return setError("Le titre est obligatoire.");
@@ -465,13 +384,13 @@ export default function NewPropertyPage() {
     setSubmitting(true);
 
     try {
-      // Tous les uploads partent EN PARALLÈLE au lieu de l'un après l'autre
+      // Tous les uploads partent EN PARALLÈLE au lieu de l'un après l'autre :
       const [coverUrl, pictureUrls, hostPictureUrl] = await Promise.all([
         coverFile ? uploadImage(coverFile) : Promise.resolve(undefined),
         Promise.all(pictureFiles.map((file) => uploadImage(file))),
         hostPictureFile ? uploadImage(hostPictureFile) : Promise.resolve(undefined),
       ]);
-      // Construction du payload à envoyer à l'API
+      // Construction du payload pour l'API
       const payload = {
         title: title.trim(),
         description: description.trim() || undefined,
@@ -485,6 +404,7 @@ export default function NewPropertyPage() {
         equipments: selectedEquipments,
         tags: selectedTags,
       };
+      // Envoi du payload à l'API pour créer la propriété
       const res = await api.post("/api/properties", payload);
       router.push(`/properties/${res.data.id}`);
     } catch (err: any) {
@@ -494,11 +414,9 @@ export default function NewPropertyPage() {
     }
   };
 
-  const isLastStep = step === TOTAL_STEPS - 1;
-
   return (
     <div className="min-h-screen bg-[#FFFBF9]">
-      <main className="py-6 px-6 lg:px-0 lg:w-[65%] lg:mx-auto">
+      <main className="py-6 px-6 lg:px-0 lg:w-[75%] lg:mx-auto">
         <button
           type="button"
           onClick={() => router.back()}
@@ -508,19 +426,18 @@ export default function NewPropertyPage() {
           Retour
         </button>
 
-        <h1 className="mb-6 text-2xl font-semibold text-gray-900">Ajouter une propriété</h1>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-gray-900">Ajouter une propriété</h1>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-xl bg-[#A54320] px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 transition disabled:opacity-60"
+            >
+              {submitting ? "Envoi..." : "Ajouter"}
+            </button>
+          </div>
 
-        <ProgressBar step={step} onStepClick={jumpToStep} />
-
-        {/* On empêche la touche Entrée de soumettre le form avant la dernière étape */}
-        <form
-          onSubmit={handleSubmit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !isLastStep && (e.target as HTMLElement).tagName !== "TEXTAREA") {
-              e.preventDefault();
-            }
-          }}
-        >
           {error && (
             <div
               className="mb-5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600"
@@ -530,88 +447,85 @@ export default function NewPropertyPage() {
             </div>
           )}
 
-          <div className="rounded-lg bg-white p-6 shadow-sm min-h-[420px]">
-            {/* Étape 0 : Informations générales */}
-            {step === 0 && (
-              <div className="space-y-5">
-                <h2 className="text-base font-semibold text-gray-900">Informations générales</h2>
-                <div>
-                  <label htmlFor="title" className="mb-1.5 block text-sm font-medium text-gray-800">
-                    Titre de la propriété <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="title"
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ex : Appartement cosy au coeur de paris"
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-gray-800">
-                    Description
-                  </label>
-                  <textarea
-                    id="description"
-                    rows={5}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Décrivez votre propriété en détail..."
-                    className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="price-per-night" className="mb-1.5 block text-sm font-medium text-gray-800">
-                      Prix par nuit (€) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      id="price-per-night"
-                      type="number"
-                      min="1"
-                      value={pricePerNight}
-                      onChange={(e) => setPricePerNight(e.target.value)}
-                      placeholder="Ex : 100"
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="postal-code" className="mb-1.5 block text-sm font-medium text-gray-800">
-                      Code postal
-                    </label>
-                    <input
-                      id="postal-code"
-                      type="text"
-                      value={postalCode}
-                      onChange={(e) => setPostalCode(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="location" className="mb-1.5 block text-sm font-medium text-gray-800">
-                    Localisation
-                  </label>
-                  <input
-                    id="location"
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
-                  />
-                </div>
+          {/* Ligne 1 : Infos + Images */}
+          <div className="grid gap-5 lg:grid-cols-2 mb-5">
+            {/* Infos logement */}
+            <div className="rounded-lg bg-white p-6 shadow-sm space-y-5">
+              <div>
+                <label htmlFor="title" className="mb-1.5 block text-sm font-medium text-gray-800">
+                  Titre de la propriété <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Ex : Appartement cosy au coeur de paris"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
+                />
               </div>
-            )}
 
-            {/* Étape 1 : Images (couverture, logement, hôte) */}
-            {step === 1 && (
-              <div className="space-y-6">
-                <h2 className="text-base font-semibold text-gray-900">Images</h2>
+              <div>
+                <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-gray-800">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  rows={5}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Décrivez votre propriété en détail..."
+                  className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
+                />
+              </div>
 
+              <div>
+                <label htmlFor="price-per-night" className="mb-1.5 block text-sm font-medium text-gray-800">
+                  Prix par nuit (€) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="price-per-night"
+                  type="number"
+                  min="1"
+                  value={pricePerNight}
+                  onChange={(e) => setPricePerNight(e.target.value)}
+                  placeholder="Ex : 100"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="postal-code" className="mb-1.5 block text-sm font-medium text-gray-800">
+                  Code postal
+                </label>
+                <input
+                  id="postal-code"
+                  type="text"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="location" className="mb-1.5 block text-sm font-medium text-gray-800">
+                  Localisation
+                </label>
+                <input
+                  id="location"
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
+                />
+              </div>
+            </div>
+
+            {/* Colonne droite */}
+            <div className="flex flex-col gap-5">
+              {/* Images */}
+              <div className="rounded-lg bg-white p-6 shadow-sm space-y-5">
+                {/* Cover */}
                 <div>
                   <p className="mb-2 block text-sm font-medium text-gray-800">
                     Image de couverture
@@ -630,11 +544,17 @@ export default function NewPropertyPage() {
                     <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-[#A54320] text-white hover:opacity-90 shrink-0">
                       <Plus size={16} aria-hidden="true" />
                       <span className="sr-only">Ajouter une image de couverture</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleCoverChange}
+                      />
                     </label>
                   </div>
                 </div>
 
+                {/* Pictures */}
                 <div>
                   <p className="mb-2 block text-sm font-medium text-gray-800">
                     Images du logement
@@ -663,26 +583,37 @@ export default function NewPropertyPage() {
                     <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-[#A54320] text-white hover:opacity-90 shrink-0">
                       <Plus size={16} aria-hidden="true" />
                       <span className="sr-only">Ajouter des images du logement</span>
-                      <input type="file" accept="image/*" multiple className="hidden" onChange={handlePicturesChange} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={handlePicturesChange}
+                      />
                     </label>
                   </div>
                 </div>
+              </div>
 
-                <div className="border-t border-gray-100 pt-6">
-                  <div className="mb-4">
-                    <label htmlFor="host-name" className="mb-1.5 block text-sm font-medium text-gray-800">
-                      Nom de l'hôte
-                    </label>
-                    <input
-                      id="host-name"
-                      type="text"
-                      value={hostName}
-                      onChange={(e) => setHostName(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
-                    />
-                  </div>
+              {/* Hôte */}
+              <div className="rounded-lg bg-white p-6 shadow-sm space-y-5">
+                <div>
+                  <label htmlFor="host-name" className="mb-1.5 block text-sm font-medium text-gray-800">
+                    Nom de l'hôte
+                  </label>
+                  <input
+                    id="host-name"
+                    type="text"
+                    value={hostName}
+                    onChange={(e) => setHostName(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
+                  />
+                </div>
 
-                  <p className="mb-2 block text-sm font-medium text-gray-800">Photo de profil</p>
+                <div>
+                  <p className="mb-2 block text-sm font-medium text-gray-800">
+                    Photo de profil
+                  </p>
                   <div className="flex items-center gap-2">
                     {hostPicturePreview ? (
                       <img
@@ -697,83 +628,53 @@ export default function NewPropertyPage() {
                     <label className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-[#A54320] text-white hover:opacity-90 shrink-0">
                       <Plus size={16} aria-hidden="true" />
                       <span className="sr-only">Ajouter une photo de profil de l'hôte</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={handleHostPictureChange} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleHostPictureChange}
+                      />
                     </label>
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* Étape 2 : Équipements */}
-            {step === 2 && (
-              <div>
-                <h2 className="mb-5 text-base font-semibold text-gray-900">Équipements</h2>
-                <EquipmentsList selected={selectedEquipments} onToggle={toggleEquipment} />
-              </div>
-            )}
-
-            {/* Étape 3 : Catégories / tags */}
-            {step === 3 && (
-              <div>
-                <h2 className="mb-5 text-base font-semibold text-gray-900">Catégories</h2>
-                <TagsSelector selected={selectedTags} onToggle={toggleTag} />
-
-                <label htmlFor="new-tag" className="mb-2 block text-sm font-medium text-gray-800">
-                  Ajouter une catégorie personnalisée
-                </label>
-                <div className="flex gap-3">
-                  <input
-                    id="new-tag"
-                    type="text"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomTag())}
-                    placeholder="Nouveau tag"
-                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
-                  />
-                  <button
-                    type="button"
-                    onClick={addCustomTag}
-                    aria-label="Ajouter le tag"
-                    className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#A54320] text-white hover:opacity-90"
-                  >
-                    <Plus size={16} aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
 
-          {/* Navigation entre étapes : Précédent / Suivant, ou Ajouter sur la dernière */}
-          <div className="mt-5 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={goPrev}
-              disabled={step === 0}
-              className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <ArrowLeft size={14} aria-hidden="true" />
-              Précédent
-            </button>
+          {/* Ligne 2 : Équipements + Catégories */}
+          <div className="grid gap-5 lg:grid-cols-2">
+            <div className="rounded-lg bg-white p-6 shadow-sm">
+              <h2 className="mb-5 text-base font-semibold text-gray-900">Équipements</h2>
+              <EquipmentsList selected={selectedEquipments} onToggle={toggleEquipment} />
+            </div>
 
-            {isLastStep ? (
-              <button
-                type="submit"
-                disabled={submitting}
-                className="rounded-xl bg-[#A54320] px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 transition disabled:opacity-60"
-              >
-                {submitting ? "Envoi..." : "Ajouter"}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={goNext}
-                className="flex items-center gap-1.5 rounded-xl bg-[#A54320] px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 transition"
-              >
-                Suivant
-                <ArrowRight size={14} aria-hidden="true" />
-              </button>
-            )}
+            <div className="rounded-lg bg-white p-6 shadow-sm">
+              <h2 className="mb-5 text-base font-semibold text-gray-900">Catégories</h2>
+              <TagsSelector selected={selectedTags} onToggle={toggleTag} />
+
+              <label htmlFor="new-tag" className="mb-2 block text-sm font-medium text-gray-800">
+                Ajouter une catégorie personnalisée
+              </label>
+              <div className="flex gap-3">
+                <input
+                  id="new-tag"
+                  type="text"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomTag())}
+                  placeholder="Nouveau tag"
+                  className="flex-1 rounded-lg border border-gray-200 px-3 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomTag}
+                  aria-label="Ajouter le tag"
+                  className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#A54320] text-white hover:opacity-90"
+                >
+                  <Plus size={16} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
           </div>
         </form>
       </main>
