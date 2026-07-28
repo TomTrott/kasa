@@ -8,6 +8,13 @@ const PROPS_JSON_PATH = path.join(__dirname, 'data', 'properties.json');
 
 function openDb() {
   const db = new sqlite3.Database(DB_PATH);
+
+  // Active le mode WAL (meilleure concurrence lecture/écriture)
+  // et un délai d'attente avant d'échouer sur un verrou
+  db.configure('busyTimeout', 5000);
+  db.run('PRAGMA journal_mode = WAL;');
+  db.run('PRAGMA busy_timeout = 5000;');
+
   // Promisify helpers
   db.runAsync = function (sql, params = []) {
     return new Promise((resolve, reject) => {

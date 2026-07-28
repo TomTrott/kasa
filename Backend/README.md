@@ -19,11 +19,11 @@ Backend minimaliste pour l’application Kasa. Il expose une API REST (Express 5
 
 ## Présentation
 Ce projet fournit une API HTTP permettant de :
-- Lister, créer, modifier, supprimer des propriétés (biens) et consulter leur détail.
+- Lister, créerdes propriétes (biens) et consulter leur détail.
 - Gérer des utilisateurs et leurs informations publiques.
-- Ajouter des notes (ratings) sur les propriétés.
 - Gérer des favoris (properties préférées) par utilisateur connecté.
 - Envoyer des images et récupérer une URL publique; supprimer une ou plusieurs images et nettoyer leurs références en base.
+- Envoyer des message et répondre
 
 Le serveur est écrit avec Express 5 et persiste les données dans un fichier SQLite. Les routes sont sécurisées par des middlewares d’authentification/autorisation basés sur JWT.
 
@@ -62,9 +62,9 @@ Les endpoints sont groupés par tags: Auth, Properties, Users, Ratings, Favorite
 ## Authentification & rôles
 - Authentification: JWT via l’en-tête Authorization: Bearer <token>.
 - Secret: JWT_SECRET
-- Rôles supportés: client, owner, admin.
+- Rôles supportés: client, owner
   - Certaines routes nécessitent d’être connecté (requireAuth).
-  - D’autres nécessitent un rôle spécifique, par ex. owner ou admin pour créer/mettre à jour/supprimer des propriétés, ou pour les uploads.
+  - D’autres nécessitent un rôle spécifique, par ex. owner pour créer des propriétés, ou pour les uploads.
   - Certaines routes autorisent self-or-admin (ex: consulter/mettre à jour son propre profil ou administrateur).
 
 Endpoints d’auth principaux (voir OpenAPI pour le détail):
