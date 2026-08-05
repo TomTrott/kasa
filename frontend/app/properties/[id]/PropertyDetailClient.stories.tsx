@@ -1,4 +1,4 @@
-import type { Meta } from "@storybook/nextjs-vite";
+import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import PropertyDetailClient from "./PropertyDetailClient";
 
 const meta: Meta<typeof PropertyDetailClient> = {
