@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import ChatClient from "@/components/pages/chat/ChatClient";
 
 export const metadata: Metadata = {
@@ -6,6 +7,10 @@ export const metadata: Metadata = {
   description: "Envoyez des messages aux propriétaires et aux locataires de Kasa. Restez en contact avec vos contacts et gérez vos conversations facilement.",
 };
 
-export default function ChatPage() {
-  return <ChatClient />;
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <ChatClient />
+    </Suspense>
+  );
 }
