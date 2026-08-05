@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import ChatClientStory from "./chatclientstory";
+import ChatClientStory from "./Chatclientstory";
 
 const meta: Meta<typeof ChatClientStory> = {
   title: "Pages/ChatClientStory",
