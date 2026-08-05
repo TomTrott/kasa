@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "@/services/api";
 
+// --- Constantes ---
 const equipments: string[] = [
   "Micro-Ondes", "Douche italienne", "Frigo", "WiFi", "Parking",
   "Sèche Cheveux", "Machine à laver", "Cuisine équipée", "Télévision",
@@ -18,7 +19,10 @@ const defaultTags: string[] = [
   "Vue sur mer", "Pour les couples", "Famille", "Forêt",
 ];
 
-// Compression image côté client avant upload
+// --- Types ---
+type LightboxState = { images: string[]; index: number } | null;
+
+// --- Fonctions utilitaires ---
 async function compressImage(
   file: File,
   maxWidth = 1920,
@@ -28,26 +32,25 @@ async function compressImage(
   if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
     return file;
   }
-  // Pas besoin de recompresser un fichier déjà léger
   if (file.size < 300_000) return file;
-  // Pas besoin de recompresser un fichier déjà au format webp
+
   try {
     const bitmap = await createImageBitmap(file);
     let { width, height } = bitmap;
-    // Redimensionnement si l'image dépasse les dimensions max
+
     if (width > maxWidth || height > maxHeight) {
       const ratio = Math.min(maxWidth / width, maxHeight / height);
       width = Math.round(width * ratio);
       height = Math.round(height * ratio);
     }
-    // Création d'un canvas pour dessiner l'image redimensionnée
+
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return file;
+
     ctx.drawImage(bitmap, 0, 0, width, height);
-    // Conversion du canvas en blob webp
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/webp", quality)
     );
@@ -57,15 +60,11 @@ async function compressImage(
       type: "image/webp",
     });
   } catch {
-    // Si createImageBitmap/canvas échoue on garde le fichier original
     return file;
   }
 }
 
-// État de la lightbox : liste d'images affichées + index courant
-type LightboxState = { images: string[]; index: number } | null;
-
-// Aperçu plein écran d'une image, avec navigation si plusieurs images
+// --- Composants ---
 const Lightbox = memo(function Lightbox({
   state,
   onClose,
@@ -142,7 +141,6 @@ const Lightbox = memo(function Lightbox({
   );
 });
 
-// Évite de re-render la grille d'équipements / les tags à chaque frappe
 const EquipmentsList = memo(function EquipmentsList({
   selected,
   onToggle,
@@ -169,7 +167,7 @@ const EquipmentsList = memo(function EquipmentsList({
     </div>
   );
 });
-// Évite de re-render la grille d'équipements / les tags à chaque frappe
+
 const TagsSelector = memo(function TagsSelector({
   selected,
   onToggle,
@@ -197,10 +195,11 @@ const TagsSelector = memo(function TagsSelector({
           type="button"
           onClick={() => onToggle(tag)}
           aria-pressed={selected.includes(tag)}
-          className={`rounded-lg px-3 py-1.5 text-sm transition ${selected.includes(tag)
-            ? "bg-[#A54320] text-white"
-            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+          className={`rounded-lg px-3 py-1.5 text-sm transition ${
+            selected.includes(tag)
+              ? "bg-[#A54320] text-white"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
         >
           {tag}
         </button>
@@ -209,9 +208,11 @@ const TagsSelector = memo(function TagsSelector({
   );
 });
 
+// --- Composant principal ---
 export default function NewPropertyPage() {
   const router = useRouter();
 
+  // --- États ---
   // Champs texte
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -236,16 +237,15 @@ export default function NewPropertyPage() {
   // UI
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Aperçu en grand (lightbox) — null quand fermée
   const [lightbox, setLightbox] = useState<LightboxState>(null);
 
-  // --- Nettoyage des object URLs pour éviter les fuites mémoire ---
+  // Référence pour nettoyer les object URLs
   const previewsRef = useRef({ coverPreview, hostPicturePreview, picturePreviews });
   useEffect(() => {
     previewsRef.current = { coverPreview, hostPicturePreview, picturePreviews };
   }, [coverPreview, hostPicturePreview, picturePreviews]);
-  // On nettoie les object URLs quand le composant est démonté
+
+  // Nettoyage des object URLs
   useEffect(() => {
     return () => {
       const { coverPreview, hostPicturePreview, picturePreviews } = previewsRef.current;
@@ -255,11 +255,13 @@ export default function NewPropertyPage() {
     };
   }, []);
 
-  // Ouvre la lightbox sur une liste d'images, à un index donné
+  // --- Fonctions de gestion de la lightbox ---
   const openLightbox = useCallback((images: string[], index: number) => {
     setLightbox({ images, index });
   }, []);
+
   const closeLightbox = useCallback(() => setLightbox(null), []);
+
   const showPrevImage = useCallback(() => {
     setLightbox((prev) =>
       prev
@@ -267,13 +269,14 @@ export default function NewPropertyPage() {
         : prev
     );
   }, []);
+
   const showNextImage = useCallback(() => {
     setLightbox((prev) =>
       prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : prev
     );
   }, []);
 
-  // Navigation clavier (Échap / flèches) + on bloque le scroll de la page pendant l'aperçu
+  // Navigation clavier pour la lightbox
   useEffect(() => {
     if (!lightbox) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -290,19 +293,19 @@ export default function NewPropertyPage() {
     };
   }, [lightbox, closeLightbox, showPrevImage, showNextImage]);
 
-  // Gestion des équipements et tags sélectionnés
+  // --- Fonctions de gestion des équipements et tags ---
   const toggleEquipment = useCallback((e: string) => {
     setSelectedEquipments((prev) =>
       prev.includes(e) ? prev.filter((i) => i !== e) : [...prev, e]
     );
   }, []);
-  // Gestion des équipements et tags sélectionnés
+
   const toggleTag = useCallback((t: string) => {
     setSelectedTags((prev) =>
       prev.includes(t) ? prev.filter((i) => i !== t) : [...prev, t]
     );
   }, []);
-  // Ajout d'un tag personnalisé
+
   const addCustomTag = useCallback(() => {
     setNewTag((current) => {
       if (current.trim()) {
@@ -312,7 +315,7 @@ export default function NewPropertyPage() {
     });
   }, []);
 
-  // Upload d'une image vers l'API
+  // --- Fonctions de gestion des images ---
   const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
@@ -321,7 +324,7 @@ export default function NewPropertyPage() {
     });
     return res.data.url;
   };
-  // Gestion des changements de fichiers pour les images
+
   const handleCoverChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -335,12 +338,11 @@ export default function NewPropertyPage() {
     },
     []
   );
-  // Gestion des changements de fichiers pour les images
+
   const handlePicturesChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
       if (!files.length) return;
-      // Compression en parallèle de toutes les images sélectionnées
       const compressed = await Promise.all(files.map((f) => compressImage(f)));
       setPictureFiles((prev) => [...prev, ...compressed]);
       setPicturePreviews((prev) => [
@@ -350,7 +352,7 @@ export default function NewPropertyPage() {
     },
     []
   );
-  // Suppression d'une image du logement
+
   const removePicture = useCallback((index: number) => {
     setPictureFiles((prev) => prev.filter((_, i) => i !== index));
     setPicturePreviews((prev) => {
@@ -358,7 +360,7 @@ export default function NewPropertyPage() {
       return prev.filter((_, i) => i !== index);
     });
   }, []);
-  // Gestion des changements de fichiers pour les images
+
   const handleHostPictureChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -372,7 +374,8 @@ export default function NewPropertyPage() {
     },
     []
   );
-  // Soumission du formulaire
+
+  // --- Soumission du formulaire ---
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -384,13 +387,12 @@ export default function NewPropertyPage() {
     setSubmitting(true);
 
     try {
-      // Tous les uploads partent EN PARALLÈLE au lieu de l'un après l'autre :
       const [coverUrl, pictureUrls, hostPictureUrl] = await Promise.all([
         coverFile ? uploadImage(coverFile) : Promise.resolve(undefined),
         Promise.all(pictureFiles.map((file) => uploadImage(file))),
         hostPictureFile ? uploadImage(hostPictureFile) : Promise.resolve(undefined),
       ]);
-      // Construction du payload pour l'API
+
       const payload = {
         title: title.trim(),
         description: description.trim() || undefined,
@@ -404,7 +406,7 @@ export default function NewPropertyPage() {
         equipments: selectedEquipments,
         tags: selectedTags,
       };
-      // Envoi du payload à l'API pour créer la propriété
+
       const res = await api.post("/api/properties", payload);
       router.push(`/properties/${res.data.id}`);
     } catch (err: any) {
@@ -414,6 +416,7 @@ export default function NewPropertyPage() {
     }
   };
 
+  // --- Render ---
   return (
     <div className="min-h-screen bg-[#FFFBF9]">
       <main className="py-6 px-6 lg:px-0 lg:w-[75%] lg:mx-auto">
@@ -495,17 +498,17 @@ export default function NewPropertyPage() {
               </div>
 
               <div>
-                <label htmlFor="postal-code" className="mb-1.5 block text-sm font-medium text-gray-800">
-                  Code postal
-                </label>
-                <input
-                  id="postal-code"
-                  type="text"
-                  value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
-                />
-              </div>
+  <label htmlFor="postal-code" className="mb-1.5 block text-sm font-medium text-gray-800">
+    Code postal
+  </label>
+  <input
+    id="postal-code"
+    type="text"
+    value={postalCode}
+    onChange={(e) => setPostalCode(e.target.value)}
+    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A54320]/30"
+  />
+</div>
 
               <div>
                 <label htmlFor="location" className="mb-1.5 block text-sm font-medium text-gray-800">

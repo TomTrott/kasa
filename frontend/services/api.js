@@ -1,7 +1,7 @@
 import axios from "axios";
-
+//baseURL: "http://localhost:3001",
 const api = axios.create({
-  baseURL: "http://localhost:3001",
+  baseURL: "https://kasa-e2qm.onrender.com/",
 });
 
 api.interceptors.request.use((config) => {
