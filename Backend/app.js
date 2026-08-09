@@ -12,8 +12,8 @@ const { initialize } = require('./db');
 
 const app = express();
 app.use(cors({
-  //origin: "http://localhost:3000",
-  origin: "https://kasa-seven-xi.vercel.app/",
+  origin: "http://localhost:3000",
+  //origin: "https://kasa-seven-xi.vercel.app/",
   credentials: true,
 }));
 

@@ -1,52 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import api from "@/services/api";
+import { useFavorites } from "@/contexts/FavoritesContext";
 import PropertyCard from "@/components/Property/PropertyCard";
 
 export default function FavoritesClient() {
-  const [favorites, setFavorites] = useState([]);
-  const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState(null);
-  const loadFavorites = async () => {
-    try {
-      const user = JSON.parse(
-        localStorage.getItem("user") || "null"
-      );
-
-      if (!user) {
-        setFavorites([]);
-        return;
-      }
-      // setLoading(true);
-      const res = await api.get(
-        `/api/users/${user.id}/favorites`
-      );
-
-      setFavorites(res.data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadFavorites();
-
-    const refresh = () => loadFavorites();
-
-    window.addEventListener(
-      "favorites-changed",
-      refresh
-    );
-// Cleanup the event listener when the component unmounts
-    return () =>
-      window.removeEventListener(
-        "favorites-changed",
-        refresh
-      );
-  }, []);
+  const { favorites, loading } = useFavorites();
 
   if (loading) {
     return (

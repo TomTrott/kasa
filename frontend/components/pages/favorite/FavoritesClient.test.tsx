@@ -1,11 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import FavoritesClient from "./FavoritesClient";
-import api from "@/services/api";
+import { useFavorites } from "@/contexts/FavoritesContext";
 
-// Mock du service API pour ne pas faire de vrais appels réseau
-jest.mock("@/services/api");
-
-// Mock du composant PropertyCard : on simplifie son rendu pour le test
+// On mocke le composant PropertyCard 
 jest.mock("@/components/Property/PropertyCard", () => {
   return function MockPropertyCard({
     property,
@@ -16,93 +13,72 @@ jest.mock("@/components/Property/PropertyCard", () => {
   };
 });
 
-const mockedApi = api as jest.Mocked<typeof api>;
+// On mocke le hook useFavorites : FavoritesClient ne fait plus d'appel API
+jest.mock("@/contexts/FavoritesContext", () => ({
+  useFavorites: jest.fn(),
+}));
+
+const mockedUseFavorites = useFavorites as jest.Mock;
 
 describe("FavoritesClient", () => {
-  // Simule un utilisateur connecté avant chaque test
-  beforeEach(() => {
-    localStorage.setItem(
-      "user",
-      JSON.stringify({ id: 1 })
-    );
-  });
-  // Nettoie les mocks et le localStorage après chaque test
   afterEach(() => {
     jest.clearAllMocks();
-    localStorage.clear();
   });
-  // Teste l'affichage des favoris récupérés depuis l'API
-  it("affiche les favoris", async () => {
-    mockedApi.get.mockResolvedValue({
-      data: [
-        {
-          id: 1,
-          title: "Villa Luxe",
-        },
-      ],
-    } as any);
+
+  // Teste l'affichage de l'état de chargement pendant que le Context récupère les favoris
+  it("affiche l'état de chargement", () => {
+    mockedUseFavorites.mockReturnValue({
+      favorites: [],
+      loading: true,
+    });
 
     render(<FavoritesClient />);
 
-    // État de chargement affiché en premier
-    expect(
-      screen.getByText("Chargement...")
-    ).toBeInTheDocument();
-
-    // Puis les données arrivent
-    await waitFor(() => {
-      expect(
-        screen.getByText("Villa Luxe")
-      ).toBeInTheDocument();
-    });
-  });
-  // Teste l'affichage d'un message lorsque la liste des favoris est vide
-  it("affiche aucun favori", async () => {
-    mockedApi.get.mockResolvedValue({
-      data: [],
-    } as any);
-
-    render(<FavoritesClient />);
-    // État de chargement affiché en premier
-    await waitFor(() => {
-      expect(
-        screen.getByText("Aucun favori")
-      ).toBeInTheDocument();
-    });
+    expect(screen.getByText("Chargement...")).toBeInTheDocument();
   });
 
-  it("recharge lors de l'événement favorites-changed", async () => {
-    // Premier appel : liste vide, second appel : un favori ajouté
-    mockedApi.get
-      .mockResolvedValueOnce({
-        data: [],
-      } as any)
-      .mockResolvedValueOnce({
-        data: [
-          {
-            id: 1,
-            title: "Maison Test",
-          },
-        ],
-      } as any);
+  // Teste l'affichage des favoris fournis par le Context
+  it("affiche les favoris", () => {
+    mockedUseFavorites.mockReturnValue({
+      favorites: [{ id: "1", title: "Villa Luxe" }],
+      loading: false,
+    });
 
     render(<FavoritesClient />);
-    // Vérifie que le message "Aucun favori" est affiché initialement
-    await waitFor(() => {
-      expect(
-        screen.getByText("Aucun favori")
-      ).toBeInTheDocument();
+
+    expect(screen.getByText("Villa Luxe")).toBeInTheDocument();
+  });
+
+  // Teste l'affichage du message "Aucun favori" quand la liste est vide
+  it("affiche aucun favori", () => {
+    mockedUseFavorites.mockReturnValue({
+      favorites: [],
+      loading: false,
     });
 
-    // Déclenche l'événement custom qui doit provoquer un rechargement
-    window.dispatchEvent(
-      new Event("favorites-changed")
-    );
-    // Vérifie que le favori "Maison Test" est maintenant affiché après le rechargement
-    await waitFor(() => {
-      expect(
-        screen.getByText("Maison Test")
-      ).toBeInTheDocument();
+    render(<FavoritesClient />);
+
+    expect(screen.getByText("Aucun favori")).toBeInTheDocument();
+  });
+
+  // Teste que FavoritesClient se met à jour dès que le Context change de valeur
+  it("se met à jour quand le Context change", () => {
+    mockedUseFavorites.mockReturnValue({
+      favorites: [],
+      loading: false,
     });
+
+    const { rerender } = render(<FavoritesClient />);
+    expect(screen.getByText("Aucun favori")).toBeInTheDocument();
+
+    // Simule un changement du state partagé du Context
+    mockedUseFavorites.mockReturnValue({
+      favorites: [{ id: "1", title: "Maison Test" }],
+      loading: false,
+    });
+
+    rerender(<FavoritesClient />);
+
+    expect(screen.getByText("Maison Test")).toBeInTheDocument();
   });
 });
