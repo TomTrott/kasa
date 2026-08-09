@@ -1,18 +1,17 @@
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-} from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import PropertyCard from "./PropertyCard";
-import api from "@/services/api";
+import { useFavorites } from "@/contexts/FavoritesContext";
 
-// Mock du service API pour ne pas faire de vrais appels réseau
-jest.mock("@/services/api");
+// On mocke le hook useFavorites : PropertyCard ne fait plus aucun appel API
+jest.mock("@/contexts/FavoritesContext", () => ({
+  useFavorites: jest.fn(),
+}));
 
-const mockedApi = api as jest.Mocked<typeof api>;
+// Cast pour avoir accès aux méthodes de mock de Jest
+const mockedUseFavorites = useFavorites as jest.Mock;
 
 describe("PropertyCard", () => {
+  // Propriété factice réutilisée dans tous les tests
   const property = {
     id: "1",
     title: "Villa Luxe",
@@ -21,104 +20,79 @@ describe("PropertyCard", () => {
     price_per_night: 150,
   };
 
-  // Simule un utilisateur connecté avant chaque test
-  beforeEach(() => {
-    localStorage.setItem("token", "token");
-    localStorage.setItem(
-      "user",
-      JSON.stringify({ id: 1 })
-    );
-  });
-
-  // Nettoie les mocks et le localStorage après chaque test
+  // Réinitialise les mocks après chaque test
   afterEach(() => {
     jest.clearAllMocks();
-    localStorage.clear();
   });
 
-  it("charge le statut favori", async () => {
-    // La propriété est déjà dans les favoris de l'utilisateur
-    mockedApi.get.mockResolvedValue({
-      data: [{ id: "1" }],
-    } as any);
-
-    render(
-      <PropertyCard property={property} />
-    );
-
-    // On attend que le bouton apparaisse dans son état "favori"
-    // (loading terminé + favorite === true)
-    await screen.findByRole("button", {
-      name: /retirer des favoris/i,
+  it("affiche le bouton dans l'état favori quand la propriété est déjà en favori", () => {
+    // Simule un Context où cette propriété est déjà marquée comme favorite
+    mockedUseFavorites.mockReturnValue({
+      isFavorite: jest.fn().mockReturnValue(true),
+      toggleFavorite: jest.fn(),
+      loading: false,
     });
 
-    // On vérifie que l'appel API a bien été fait avec la bonne URL
-    expect(mockedApi.get).toHaveBeenCalledWith(
-      "/api/users/1/favorites"
-    );
+    render(<PropertyCard property={property} />);
+
+    // Le bouton doit afficher le libellé "Retirer des favoris"
+    expect(
+      screen.getByRole("button", { name: /retirer des favoris/i })
+    ).toBeInTheDocument();
   });
 
-  it("ajoute un favori", async () => {
-    // Aucune propriété en favori au départ
-    mockedApi.get.mockResolvedValue({
-      data: [],
-    } as any);
+  it("affiche le bouton dans l'état non-favori quand la propriété n'est pas en favori", () => {
+    // Simule un Context où cette propriété n'est pas favorite
+    mockedUseFavorites.mockReturnValue({
+      isFavorite: jest.fn().mockReturnValue(false),
+      toggleFavorite: jest.fn(),
+      loading: false,
+    });
 
-    // Mock de la requête d'ajout aux favoris
-    mockedApi.post.mockResolvedValue(
-      {} as any
-    );
+    render(<PropertyCard property={property} />);
 
-    render(
-      <PropertyCard property={property} />
-    );
+    // Le bouton doit afficher le libellé "Ajouter aux favoris"
+    expect(
+      screen.getByRole("button", { name: /ajouter aux favoris/i })
+    ).toBeInTheDocument();
+  });
 
-    // On attend le bouton dans son état "pas favori"
-    const button = await screen.findByRole(
-      "button",
-      { name: /ajouter aux favoris/i }
-    );
+  it("n'affiche pas le bouton favori tant que le Context est en chargement", () => {
+    // Simule l'état initial du Context : les favoris sont encore en cours de chargement
+    mockedUseFavorites.mockReturnValue({
+      isFavorite: jest.fn().mockReturnValue(false),
+      toggleFavorite: jest.fn(),
+      loading: true,
+    });
 
-    // On clique sur le bouton pour ajouter la propriété aux favoris
+    render(<PropertyCard property={property} />);
+
+    // Le bouton favori est masqué tant qu'on ne sait pas encore si la propriété est en favori ou non
+    expect(
+      screen.queryByRole("button", { name: /favoris/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("appelle toggleFavorite avec la propriété complète au clic", () => {
+    // On isole toggleFavorite dans sa propre variable pour pouvoir vérifier précisément avec quels arguments il a été appelé
+    const toggleFavorite = jest.fn();
+
+    mockedUseFavorites.mockReturnValue({
+      isFavorite: jest.fn().mockReturnValue(false),
+      toggleFavorite,
+      loading: false,
+    });
+
+    render(<PropertyCard property={property} />);
+
+    const button = screen.getByRole("button", {
+      name: /ajouter aux favoris/i,
+    });
+
+    // Simule le clic utilisateur sur le cœur
     fireEvent.click(button);
 
-    // On vérifie que la requête POST a bien été envoyée
-    await waitFor(() => {
-      expect(mockedApi.post).toHaveBeenCalledWith(
-        "/api/properties/1/favorite"
-      );
-    });
-  });
-
-  it("supprime un favori", async () => {
-    // La propriété est déjà dans les favoris
-    mockedApi.get.mockResolvedValue({
-      data: [{ id: "1" }],
-    } as any);
-
-    // Mock de la requête de suppression des favoris
-    mockedApi.delete.mockResolvedValue(
-      {} as any
-    );
-
-    render(
-      <PropertyCard property={property} />
-    );
-
-    // On attend le bouton dans son état "favori"
-    const button = await screen.findByRole(
-      "button",
-      { name: /retirer des favoris/i }
-    );
-
-    // On clique sur le bouton pour retirer la propriété des favoris
-    fireEvent.click(button);
-
-    // On vérifie que la requête DELETE a bien été envoyée
-    await waitFor(() => {
-      expect(mockedApi.delete).toHaveBeenCalledWith(
-        "/api/properties/1/favorite"
-      );
-    });
+    // toggleFavorite doit recevoir l'objet property complet pas juste l'id
+    expect(toggleFavorite).toHaveBeenCalledWith(property);
   });
 });

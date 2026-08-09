@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import api from "@/services/api";
+import { useState } from "react";
 import { Heart } from "lucide-react";
 import { fullUrl } from "@/lib/url";
+import { useFavorites } from "@/contexts/FavoritesContext";
 
 interface PropertyCardProps {
   property: {
@@ -19,71 +19,21 @@ interface PropertyCardProps {
 }
 
 export default function PropertyCard({ property, priority = false }: PropertyCardProps) {
-  // État pour savoir si la propriété est dans les favoris de l'utilisateur
-  const [favorite, setFavorite] = useState(false);
-  // État pour savoir si la requête pour récupérer le statut de favori est en cours
-  const [loading, setLoading] = useState(true);
   // État pour savoir si l'image de couverture a échoué à se charger
   const [imgError, setImgError] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    // Fonction pour charger le statut de favori de la propriété
-    const loadFavoriteStatus = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const user = JSON.parse(localStorage.getItem("user") || "null");
-        // Si l'utilisateur n'est pas connecté, on ne fait rien
-        if (!token || !user) {
-          if (isMounted) setLoading(false);
-          return;
-        }
-        // On récupère la liste des favoris de l'utilisateur et on vérifie si la propriété est dans cette liste
-        const res = await api.get(`/api/users/${user.id}/favorites`);
-        const isFavorite = res.data.some((fav: { id: string }) => fav.id === property.id);
-        // On met à jour l'état favorite si le composant est toujours monté
-        if (isMounted) setFavorite(isFavorite);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    // On appelle la fonction pour charger le statut de favori
-    loadFavoriteStatus();
-    return () => {
-      isMounted = false;
-    };
-  }, [property.id]);
-  // Fonction pour ajouter ou retirer la propriété des favoris de l'utilisateur
-  const toggleFavorite = async (e: React.MouseEvent) => {
+  // Statut de favori et action de toggle viennent du Context (state partagé
+  // avec toutes les autres cartes et avec FavoritesClient)
+  const { isFavorite, toggleFavorite, loading } = useFavorites();
+  const favorite = isFavorite(property.id);
+
+  // Ajoute ou retire la propriété des favoris de l'utilisateur
+  const handleToggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // On vérifie si l'utilisateur est connecté
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Veuillez vous connecter");
-      return;
-    }
-
-    // optimistic update, rollback si l'appel échoue
-    const previous = favorite;
-    setFavorite(!previous);
-    // On envoie la requête pour ajouter ou retirer la propriété des favoris
-    try {
-      if (previous) {
-        await api.delete(`/api/properties/${property.id}/favorite`);
-      } else {
-        await api.post(`/api/properties/${property.id}/favorite`);
-      }
-      // On déclenche un événement pour informer les autres composants que la liste des favoris a changé
-      window.dispatchEvent(new Event("favorites-changed"));
-    } catch (error) {
-      console.error(error);
-      setFavorite(previous);
-    }
+    toggleFavorite(property);
   };
-  //
+
   const coverUrl = !imgError ? fullUrl(property.cover) : "/property-placeholder.jpg";
 
   return (
@@ -104,7 +54,7 @@ export default function PropertyCard({ property, priority = false }: PropertyCar
 
           {!loading && (
             <button
-              onClick={toggleFavorite}
+              onClick={handleToggleFavorite}
               aria-label={favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
               aria-pressed={favorite}
               className={

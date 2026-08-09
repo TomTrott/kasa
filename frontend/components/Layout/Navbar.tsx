@@ -4,7 +4,7 @@ import MobileLogo from "@/assets/images/Logo-mobile.webp";
 import BurgerIcon from "@/assets/images/burger.webp";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "@/services/api";
+import { useFavorites } from "@/contexts/FavoritesContext";
 import { Heart, MessageCircle, X } from "lucide-react";
 import Image from "next/image";
 
@@ -12,48 +12,43 @@ export default function Navbar() {
   const router = useRouter();
 
   const [user, setUser] = useState<any>(null);
-  const [favoritesCount, setFavoritesCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  //  const [isLoading, setIsLoading] = useState(true);
+
+  // Le nombre de favoris vient directement du Context : plus besoin de
+  // fetch ni d'écouter l'événement "favorites-changed", il se met à jour
+  // automatiquement dès que favorites change ailleurs dans l'app
+  const { favorites } = useFavorites();
+  const favoritesCount = favorites.length;
+
   useEffect(() => {
-    // Charger l'utilisateur et le nombre de favoris depuis le localStorage
-    const loadUser = async () => {
+    // Charge l'utilisateur connecté depuis le localStorage
+    const loadUser = () => {
       const storedUser = localStorage.getItem("user");
       const token = localStorage.getItem("token");
-      // setIsLoading(false);
+
       if (!storedUser || !token) {
         setUser(null);
-        setFavoritesCount(0);
         return;
       }
 
-      const userData = JSON.parse(storedUser);
-      setUser(userData);
-      // Récupérer le nombre de favoris depuis l'API
-      try {
-        const res = await api.get(`/api/users/${userData.id}/favorites`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setFavoritesCount(res.data.length);
-      } catch (err) {
-        console.error(err);
-      }
+      setUser(JSON.parse(storedUser));
     };
-    // Appeler la fonction loadUser au montage du composant et lors des événements "auth-changed" et "favorites-changed"
+
+    // Appelée au montage et lors de l'événement "auth-changed"
+    // (connexion/déconnexion) — ceci reste un event DOM car l'authentification
+    // n'est pas gérée par un Context dans ce projet
     loadUser();
     window.addEventListener("auth-changed", loadUser);
-    window.addEventListener("favorites-changed", loadUser);
 
     return () => {
       window.removeEventListener("auth-changed", loadUser);
-      window.removeEventListener("favorites-changed", loadUser);
     };
   }, []);
+
   // Fonction de déconnexion
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    setFavoritesCount(0);
     setUser(null);
     window.dispatchEvent(new Event("auth-changed"));
     router.push("/login");
