@@ -1,6 +1,6 @@
 import axios from "axios";
 const api = axios.create({
-  baseURL: "https://kasa-e2qm.onrender.com/",
+  baseURL: "https://kasa-e2qm.onrender.com",
   //baseURL: "http://localhost:3001",
 });
 
