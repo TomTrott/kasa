@@ -13,7 +13,7 @@ jest.mock("@/components/Property/PropertyCard", () => {
   };
 });
 
-// On mocke le hook useFavorites : FavoritesClient ne fait plus d'appel API
+// On mocke le hook useFavorites 
 jest.mock("@/contexts/FavoritesContext", () => ({
   useFavorites: jest.fn(),
 }));
